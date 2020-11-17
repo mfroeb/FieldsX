@@ -21,7 +21,7 @@
 
 (* ::Input::Initialization:: *)
 xAct`FieldsX`$xTensorVersionExpected={"1.1.3",{2018,2,28}};
-xAct`FieldsX`$Version={"1.0",{2020,08,17}};
+xAct`FieldsX`$Version={"1.0.1",{2020,11,17}};
 
 
 (* ::Input::Initialization:: *)
@@ -48,11 +48,13 @@ You should have received a copy of the GNU General Public License along with thi
   
 (* :Context: xAct`FieldsX` *)
 
-(* :Package Version: 1.0 *)
+(* :Package Version: 1.0.1 *)
 
 (* :Copyright: Markus B. Fr\[ODoubleDot]b (2020) *)
 
-(* :History: 1.0 Initial release. *)
+(* :History: 1.0   Initial release.
+             1.0.1 Compatibility with Spinors package, fixed some leaking symbols
+ *)
 
 (* :Keywords: TODO *)
 
@@ -131,6 +133,67 @@ PrependTo[$ContextPath,End[]];
 
 
 (* ::Input::Initialization:: *)
+Begin["`Private`"];
+SpinorsPkgLoaded=MemberQ[$Packages,"xAct`Spinors`"];
+SpinorsKeepDefs=If[ValueQ@Unevaluated[Global`$Keep2CompDefs],TrueQ[Global`$Keep2CompDefs],False];
+
+
+(* ::Input::Initialization:: *)
+(* Spinors functions are renamed if needed *)
+If[SpinorsPkgLoaded&&(!SpinorsKeepDefs),
+xAct`Spinors`Def2CompSpinStructure::usage=StringReplace[xAct`Spinors`DefSpinStructure::usage,"DefSpinStructure"->"Def2CompSpinStructure"];
+xAct`Spinors`DefSpinStructure::usage=.;
+xAct`Spinors`Undef2CompSpinStructure::usage=StringReplace[xAct`Spinors`UndefSpinStructure::usage,"UndefSpinStructure"->"Undef2CompSpinStructure"];
+xAct`Spinors`UndefSpinStructure::usage=.;
+xAct`Spinors`SpinorPrefix::usage=StringReplace[xAct`Spinors`SpinorPrefix::usage,"DefSpinStructure"->"Def2CompSpinStructure"];
+xAct`Spinors`SpinorMark::usage=StringReplace[xAct`Spinors`SpinorMark::usage,"DefSpinStructure"->"Def2CompSpinStructure"];
+
+xAct`Spinors`Def2CompSpinor::usage=StringReplace[xAct`Spinors`DefSpinor::usage,"DefSpinor"->"Def2CompSpinor"];
+xAct`Spinors`DefSpinor::usage=.;
+xAct`Spinors`Undef2CompSpinor::usage=StringReplace[xAct`Spinors`UndefSpinor::usage,"UndefSpinor"->"Undef2CompSpinor"];
+xAct`Spinors`UndefSpinor::usage=.;
+xAct`Spinors`PrintDaggerAs::usage=StringReplace[xAct`Spinors`PrintDaggerAs::usage,"DefSpinor"->"Def2CompSpinor"];
+];
+
+
+(* ::Input::Initialization:: *)
+If[SpinorsPkgLoaded&&(!SpinorsKeepDefs),
+DownValues[xAct`Spinors`Private`CheckMetric]=(DownValues[xAct`Spinors`Private`CheckMetric]/.{xAct`Spinors`DefSpinStructure->xAct`Spinors`Def2CompSpinStructure});
+Unprotect[xAct`Spinors`DefSpinStructure];
+Options[xAct`Spinors`Def2CompSpinStructure]=Options[xAct`Spinors`DefSpinStructure];
+DownValues[xAct`Spinors`Def2CompSpinStructure]=(DownValues[xAct`Spinors`DefSpinStructure]/.{xAct`Spinors`DefSpinStructure->xAct`Spinors`Def2CompSpinStructure});
+Protect[xAct`Spinors`Def2CompSpinStructure];
+ClearAll[xAct`Spinors`DefSpinStructure];
+Remove[xAct`Spinors`DefSpinStructure];
+
+Unprotect[xAct`Spinors`UndefSpinStructure];
+Options[xAct`Spinors`Undef2CompSpinStructure]=Options[xAct`Spinors`UndefSpinStructure];
+DownValues[xAct`Spinors`Undef2CompSpinStructure]=(DownValues[xAct`Spinors`UndefSpinStructure]/.{xAct`Spinors`UndefSpinStructure->xAct`Spinors`Undef2CompSpinStructure});
+Protect[xAct`Spinors`Undef2CompSpinStructure];
+ClearAll[xAct`Spinors`UndefSpinStructure];
+Remove[xAct`Spinors`UndefSpinStructure];
+
+Unprotect[xAct`Spinors`DefSpinor];
+Options[xAct`Spinors`Def2CompSpinor]=Options[xAct`Spinors`DefSpinor];
+DownValues[xAct`Spinors`Def2CompSpinor]=(DownValues[xAct`Spinors`DefSpinor]/.{xAct`Spinors`DefSpinor->xAct`Spinors`Def2CompSpinor});
+Protect[xAct`Spinors`Def2CompSpinor];
+ClearAll[xAct`Spinors`DefSpinor];
+Remove[xAct`Spinors`DefSpinor];
+
+(* UndefSpinor is just UndefTensor *)
+Unprotect[xAct`Spinors`UndefSpinor];
+xAct`Spinors`Undef2CompSpinor=UndefTensor;
+Protect[xAct`Spinors`Undef2CompSpinor];
+ClearAll[xAct`Spinors`UndefSpinor];
+Remove[xAct`Spinors`UndefSpinor];
+];
+
+
+(* ::Input::Initialization:: *)
+End[];
+
+
+(* ::Input::Initialization:: *)
 (****************************** 1.5 Usage messages ******************************)
 
 
@@ -172,13 +235,22 @@ $GammaStarSign::usage=usagerow[{"$GammaStarSign defines the global sign of the \
 GammaMatrix::usage=usagerows[{GammaMatrix[it@"metric",it@"n"]," returns the generalized (totally antisymmetric) \[Gamma] matrix of order ",it@"n"," of the Clifford algebra associated to the metric ",it@"metric","."},{GammaMatrix[it@"metric",Star]," returns the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix of the Clifford algebra associated to the metric ",it@"metric","."},{GammaMatrix[it@"metric",Zero]," returns the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix of the Clifford algebra associated to the metric ",it@"metric","."}];
 MetricOfGammaMatrix::usage=usagerow[{MetricOfGammaMatrix[it@"\[Gamma]"]," returns the metric associated to the Clifford algebra of ",it@"\[Gamma]","."}];
 $GammaMatrices::usage=usagerow[{$GammaMatrices," is a global variable storing the list of all currently defined \[Gamma] matrices."}];
-DefSpinStructure::usage=usagerow[{DefSpinStructure[it@"metric",{it@"a",it@"b","\[Ellipsis]"}]," defines a spin structure on the base manifold ",it@"M"," of the metric ",it@"metric",". This includes the \[Gamma] matrices of the Clifford algebra associated to ",it@"metric"," and a spin bundle ",it@"SpinM"," with abstract indices ",it@"a",",",it@"b",",\[Ellipsis], whose covariant derivative is induced from the one of ",it@"metric",", with the same name."}];
-UndefSpinStructure::usage=usagerow[{UndefSpinStructure[it@"metric"]," undefines the spin structure on the base manifold of the metric ",it@"metric","."}];
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+(* FieldsX functions are renamed *)
+(* Roundabout construction to avoid introducing the symbols if we don't need them (leaky evaluation of If) *)
+MessageName[Evaluate@Symbol["DefGenSpinStructure"],"usage"]=usagerow[{"DefGenSpinStructure[",it@"metric",", {",it@"a",", ",it@"b",", \[Ellipsis]}] defines a spin structure on the base manifold ",it@"M"," of the metric ",it@"metric",". This includes the \[Gamma] matrices of the Clifford algebra associated to ",it@"metric"," and a spin bundle ",it@"SpinM"," with abstract indices ",it@"a",", ",it@"b",", \[Ellipsis], whose covariant derivative is induced from the one of ",it@"metric",", with the same name."}];
+MessageName[Evaluate@Symbol["UndefGenSpinStructure"],"usage"]=usagerow[{"UndefGenSpinStructure[",it@"metric","] undefines the spin structure on the base manifold of the metric ",it@"metric","."}];
+,
+(* We have the nice names *)
+MessageName[Evaluate@Symbol["DefSpinStructure"],"usage"]=
+usagerow[{"DefSpinStructure[",it@"metric",", {",it@"a",", ",it@"b",", \[Ellipsis]}] defines a spin structure on the base manifold ",it@"M"," of the metric ",it@"metric",". This includes the \[Gamma] matrices of the Clifford algebra associated to ",it@"metric"," and a spin bundle ",it@"SpinM"," with abstract indices ",it@"a",", ",it@"b",", \[Ellipsis], whose covariant derivative is induced from the one of ",it@"metric",", with the same name."}];
+MessageName[Evaluate@Symbol["UndefSpinStructure"],"usage"]=usagerow[{"UndefSpinStructure[",it@"metric","] undefines the spin structure on the base manifold of the metric ",it@"metric","."}];
+];
 SpinBundleQ::usage=usagerow[{SpinBundleQ[it@"bundle"]," gives True if ",it@"bundle"," is a spin bundle, and False otherwise."}];
 SplitGammaMatrix::usage=usagerow[{SplitGammaMatrix[it@"\[Gamma]",it@"keep"]," decomposes the generalized \[Gamma] matrix ",it@"\[Gamma]", " into an antisymmetrized product of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
 SplitGammaMatrices::usage=usagerow[{SplitGammaMatrices[it@"expr",it@"keep"]," decomposes all the generalized \[Gamma] matrices appearing within ",it@"expr", " into antisymmetrized products of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
 JoinGammaMatrices::usage=usagerow[{JoinGammaMatrices[it@"expr"]," replaces products of \[Gamma] matrices within ",it@"expr"," by generalized \[Gamma] matrices."}];
-EpsilonGammaReduce::usage=usagerow[{JoinGammaMatrices[it@"expr",it@"metric"]," replaces products of the totally antisymmetric \[Epsilon] tensor and generalized \[Gamma] matrices associated to the metric ",it@"metric"," within ",it@"expr"," by suitably contracted ones."}];
+EpsilonGammaReduce::usage=usagerow[{EpsilonGammaReduce[it@"expr",it@"metric"]," replaces products of the totally antisymmetric \[Epsilon] tensor and generalized \[Gamma] matrices associated to the metric ",it@"metric"," within ",it@"expr"," by suitably contracted ones."}];
 EpsilonYoungProject::usage=usagerow[{EpsilonYoungProject[it@"expr",it@"metric"]," projects products of the totally antisymmetric \[Epsilon] tensor associated to the metric ",it@"metric"," and other tensors within ",it@"expr"," onto the corresponding Young tableaux."}];
 
 
@@ -188,16 +260,28 @@ DiracQ::usage=usagerow[{DiracQ[it@"expr"]," gives True if ",it@"expr"," is a Dir
 SpinorQ::usage=usagerow[{SpinorQ[it@"expr"]," gives True if ",it@"expr"," is a spinor, and False otherwise."}];
 SpinorUnbarQ::usage=usagerow[{SpinorUnbarQ[it@"expr"]," gives True if ",it@"expr"," is a spinor but not a conjugate one, and False otherwise."}];
 SpinorBarQ::usage=usagerow[{SpinorBarQ[it@"expr"]," gives True if ",it@"expr"," is a conjugate spinor, and False otherwise."}];
-DefSpinor::usage=usagerows[{DefSpinor[it@"\[Psi]"[-it@"a"],it@"M"]," defines ",it@"\[Psi]"," to be a spinor field on the manifold ",it@"M"," and the spin bundle associated to the index ",-it@"a",". The conjugate spinor ",it@Overscript["\[Psi]","_"]," is automatically defined, with name ",it@bar\[Psi],"."},{DefSpinor[it@"\[Psi]"[-it@"a"],it@"M",it@"sym"]," defines ",it@"\[Psi]"," to be a spinor field with symmetry ",it@"sym","."},{DefSpinor[it@"\[Psi]"[it@"b",-it@"a"],it@"M"]," defines ",it@"\[Psi]"," to be a spinor field valued in the inner bundle associated to the index ",it@"b","."}];
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+(* FieldsX functions are renamed *)
+(* Roundabout construction to avoid introducing the symbols if we don't need them (leaky evaluation of If) *)
+MessageName[Evaluate@Symbol["DefGenSpinor"],"usage"]=usagerows[{"DefGenSpinor[",it@"\[Psi]"[-it@"a"],", ",it@"M","] defines ",it@"\[Psi]"," to be a spinor field on the manifold ",it@"M"," and the spin bundle associated to the index ",-it@"a",". The conjugate spinor ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," is automatically defined, with name ",it@"bar\[Psi]","."},{"DefGenSpinor[",it@"\[Psi]"[-it@"a"],", ",it@"M",", ",it@"sym","] defines ",it@"\[Psi]"," to be a spinor field with symmetry ",it@"sym","."},{"DefGenSpinor[",it@"\[Psi]"[it@"b",-it@"a"],", ",it@"M","] defines ",it@"\[Psi]"," to be a spinor field valued in the inner bundle associated to the index ",it@"b","."}];
+SpinorType::usage=usagerow[{"SpinorType is an option for DefGenSpinor that specifies the type of spinor. By default, it is Majorana."}];
+Majorana::usage=usagerow[{"Majorana is a value for the option SpinorType of DefGenSpinor."}];
+Dirac::usage=usagerow[{"Dirac is a value for the option SpinorType of DefGenSpinor."}];
+Conjugate::usage=Conjugate::usage<>"\n"<>usagerow[{"Conjugate is also an option for DefGenSpinor that specifies if the roles of spinor and conjugate spinor should be switched."}];
+MessageName[Evaluate@Symbol["UndefGenSpinor"],"usage"]=usagerow[{"UndefGenSpinor[",it@"\[Psi]","] undefines ",it@"\[Psi]"," and the conjugate spinor ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)","."}];
+,
+(* We keep the nice names *)
+MessageName[Evaluate@Symbol["DefSpinor"],"usage"]=usagerows[{"DefSpinor[",it@"\[Psi]"[-it@"a"],", ",it@"M","] defines ",it@"\[Psi]"," to be a spinor field on the manifold ",it@"M"," and the spin bundle associated to the index ",-it@"a",". The conjugate spinor ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," is automatically defined, with name ",it@"bar\[Psi]","."},{"DefSpinor[",it@"\[Psi]"[-it@"a"],", ",it@"M",", ",it@"sym","] defines ",it@"\[Psi]"," to be a spinor field with symmetry ",it@"sym","."},{"DefSpinor[",it@"\[Psi]"[it@"b",-it@"a"],", ",it@"M","] defines ",it@"\[Psi]"," to be a spinor field valued in the inner bundle associated to the index ",it@"b","."}];
 SpinorType::usage=usagerow[{"SpinorType is an option for DefSpinor that specifies the type of spinor. By default, it is Majorana."}];
 Majorana::usage=usagerow[{"Majorana is a value for the option SpinorType of DefSpinor."}];
 Dirac::usage=usagerow[{"Dirac is a value for the option SpinorType of DefSpinor."}];
 Conjugate::usage=Conjugate::usage<>"\n"<>usagerow[{"Conjugate is also an option for DefSpinor that specifies if the roles of spinor and conjugate spinor should be switched."}];
-UndefSpinor::usage=usagerow[{UndefSpinor[it@"\[Psi]"]," undefines ",it@"\[Psi]"," and the conjugate spinor ",it@Overscript["\[Psi]","_"],"."}];
-DefEvenSpinor::usage=usagerows[{DefEvenSpinor[it@"\[Psi]"[-it@"a"],it@"M"]," defines ",it@"\[Psi]"," to be a Grassmann-even spinor field on the manifold ",it@"M"," and the spin bundle associated to the index ",-it@"a",". The conjugate spinor ",it@Overscript["\[Psi]","_"]," is automatically defined, with name ",it@bar\[Psi],"."},{DefEvenSpinor[it@"\[Psi]"[-it@"a"],it@"M",it@"sym"]," defines ",it@"\[Psi]"," to be a Grassmann-even spinor field with symmetry ",it@"sym","."},{DefEvenSpinor[it@"\[Psi]"[it@"b",-it@"a"],it@"M"]," defines ",it@"\[Psi]"," to be a Grassmann-even spinor field valued in the inner bundle associated to the index ",it@"b","."}];
-DefOddSpinor::usage=usagerows[{DefOddSpinor[it@"\[Psi]"[-it@"a"],it@"M"]," defines ",it@"\[Psi]"," to be a Grassmann-odd spinor field on the manifold ",it@"M"," and the spin bundle associated to the index ",-it@"a",". The conjugate spinor ",it@Overscript["\[Psi]","_"]," is automatically defined, with name ",it@bar\[Psi],"."},{DefOddSpinor[it@"\[Psi]"[-it@"a"],it@"M",it@"sym"]," defines ",it@"\[Psi]"," to be a Grassmann-odd spinor field with symmetry ",it@"sym","."},{DefOddSpinor[it@"\[Psi]"[it@"b",-it@"a"],it@"M"]," defines ",it@"\[Psi]"," to be a Grassmann-odd spinor field valued in the inner bundle associated to the index ",it@"b","."}];
-ConjugateSpinor::usage=usagerow[{ConjugateSpinor[it@"\[Psi]"]," returns ",it@Overscript[\[Psi],"_"],", and ",ConjugateSpinor[it@"bar\[Psi]"]," returns ",it@"\[Psi]","."}];
-SpinScalar::usage=usagerow[{SpinScalar[it@"expr"]," gives True if ",it@"expr"," (given in pseudo index-free notation) is a spin bundle scalar (i.e., all indices with values in a spin bundle can be contracted), and False otherwise."}];
+MessageName[Evaluate@Symbol["UndefSpinor"],"usage"]=usagerow[{"UndefSpinor[",it@"\[Psi]","] undefines ",it@"\[Psi]"," and the conjugate spinor ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)","."}];
+];
+DefEvenSpinor::usage=usagerows[{"DefEvenSpinor[",it@"\[Psi]"[-it@"a"],", ",it@"M","] defines ",it@"\[Psi]"," to be a Grassmann-even spinor field on the manifold ",it@"M"," and the spin bundle associated to the index ",-it@"a",". The conjugate spinor ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," is automatically defined, with name ",it@"bar\[Psi]","."},{"DefEvenSpinor[",it@"\[Psi]"[-it@"a"],", ",it@"M",", ",it@"sym","] defines ",it@"\[Psi]"," to be a Grassmann-even spinor field with symmetry ",it@"sym","."},{"DefEvenSpinor[",it@"\[Psi]"[it@"b",-it@"a"],", ",it@"M","] defines ",it@"\[Psi]"," to be a Grassmann-even spinor field valued in the inner bundle associated to the index ",it@"b","."}];
+DefOddSpinor::usage=usagerows[{"DefOddSpinor[",it@"\[Psi]"[-it@"a"],", ",it@"M","] defines ",it@"\[Psi]"," to be a Grassmann-odd spinor field on the manifold ",it@"M"," and the spin bundle associated to the index ",-it@"a",". The conjugate spinor ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," is automatically defined, with name ",it@"bar\[Psi]","."},{"DefOddSpinor[",it@"\[Psi]"[-it@"a"],", ",it@"M",", ",it@"sym","] defines ",it@"\[Psi]"," to be a Grassmann-odd spinor field with symmetry ",it@"sym","."},{"DefOddSpinor[",it@"\[Psi]"[it@"b",-it@"a"],", ",it@"M","] defines ",it@"\[Psi]"," to be a Grassmann-odd spinor field valued in the inner bundle associated to the index ",it@"b","."}];
+ConjugateSpinor::usage=usagerow[{"ConjugateSpinor[",it@"\[Psi]","] returns ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",", and ConjugateSpinor[",it@"bar\[Psi]","] returns ",it@"\[Psi]","."}];
+SpinScalar::usage=usagerow[{"SpinScalar[",it@"expr","] gives True if ",it@"expr"," (given in pseudo index-free notation) is a spin bundle scalar (i.e., all indices with values in a spin bundle can be contracted), and False otherwise."}];
 
 
 (* ::Input::Initialization:: *)
@@ -206,8 +290,8 @@ SignOfGammaMatrix::usage=usagerow[{SignOfGammaMatrix[it@"\[Gamma]"]," returns th
 FindSpinChain::usage=usagerow[{FindSpinChain[it@"expr",it@"start"[it@"inds"]]," returns a list of spinors and \[Gamma] matrices appearing within ",it@"expr"," whose indices are contracted with each other (spin chain). The chain starts with ",it@"start"[it@"inds"],", which must be a (conjugate) spinor appearing in ",it@"expr","."}];
 FlipSpinChain::usage=usagerow[{FlipSpinChain[it@"expr",it@"chain"]," returns ",it@"expr"," with the spin chain ",it@"chain"," flipped using the Majorana flip relations."}];
 FlipSpinor::usage=usagerows[{FlipSpinor[it@"expr"]," returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single spinor bilinear."},{FlipSpinor[it@"expr",it@"\[Psi]"]," returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single bilinear formed with the spinor ",it@"\[Psi]","."},{FlipSpinor[it@"expr",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1],it@Subscript["\[Psi]",2]]," returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single bilinear formed with the spinors ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1]," and ",it@Subscript["\[Psi]",2],"."}];
-FlipSpinorsToConjugateAmount::usage=usagerow[{FlipSpinorsToConjugateAmount[it@"expr",it@"\[Psi]","count"]," returns ",it@"expr"," with spinor bilinears formed with the spinor ",it@"\[Psi]"," flipped using the Majorana flip relations until ",it@"count"," conjugate spinors ",it@\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)," remain."}];
-SortSpinor::usage=usagerows[{SortSpinor[it@"expr",it@"\[Psi]"->it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"]," returns ",it@"expr"," with all bilinears formed with the spinor ",it@"\[Psi]"," flipped using the Majorana flip relations. The spinor ",it@"\[Psi]"," and its conjugate ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," can be exchanged."},{SortSpinor[it@"expr",{it@Subscript["\[Psi]",1]->it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1],"\[Ellipsis]"}]," returns ",it@"expr"," with all bilinears formed with the spinors ",it@Subscript["\[Psi]",1],",\[Ellipsis] flipped using the Majorana flip relations. The spinors ",it@Subscript["\[Psi]",i]," and their conjugates ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",i]," can be exchanged."}];
+FlipSpinorsToConjugateAmount::usage=usagerow[{FlipSpinorsToConjugateAmount[it@"expr",it@"\[Psi]","count"]," returns ",it@"expr"," with spinor bilinears formed with the spinor ",it@"\[Psi]"," flipped using the Majorana flip relations until ",it@"count"," conjugate spinors ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," remain."}];
+SortSpinor::usage=usagerows[{SortSpinor[it@"expr",it@"\[Psi]"->it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"]," returns ",it@"expr"," with all bilinears formed with the spinor ",it@"\[Psi]"," flipped using the Majorana flip relations. The spinor ",it@"\[Psi]"," and its conjugate ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," can be exchanged."},{SortSpinor[it@"expr",{it@Subscript["\[Psi]",1]->it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1],"\[Ellipsis]"}]," returns ",it@"expr"," with all bilinears formed with the spinors ",it@Subscript["\[Psi]",1],",\[Ellipsis] flipped using the Majorana flip relations. The spinors ",it@Subscript["\[Psi]","i"]," and their conjugates ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)","i"]," can be exchanged."}];
 SpinorFlipSymmetrize::usage=usagerow[{SpinorFlipSymmetrize[it@"expr"]," returns ",it@"expr"," with all spinor bilinears symmetrized using the Majorana flip relations."}];
 FierzExpand::usage=usagerow[{"FierzExpand[",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1][Subscript["inds",1]],",",it@Subscript["\[Psi]",2][Subscript["inds",2]],"] expands the tensor product ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1][Subscript["inds",1]],it@Subscript["\[Psi]",2][Subscript["inds",2]]," in the basis of generalized \[Gamma] matrices (Fierz rearrangement). Both spinors may have covariant derivatives acting on them."}];
 
@@ -227,7 +311,7 @@ DefGrading::usage=usagerows[{"DefGrading[",it@"grad","] defines the grading ",it
 SumGrading::usage=usagerow[{"SumGrading is an option for DefGrading that specifies a function that determines the grading of a sum. By default it is Undefined&."}];
 ZeroGrading::usage=usagerow[{"ZeroGrading is an option for DefGrading that specifies the grading of 0. By default it is Undefined."}];
 UndefGrading::usage=usagerow[{"UndefGrading[",it@"grad","] undefines ",it@"grad","."}];
-SetGrading::usage=usagerows[{"SetGrading[",it@"T",",",it@"grad","\[Rule]",it@"val","] sets the grading ",it@"grad"," of the tensor or spinor ",it@"T"," to the value ",it@"val","."},{"SetGrading[{",it@Subscript["T",1],",",it@Subscript["T",2],"\[Ellipsis]}",it@"grad","\[Rule]",it@"val","] sets the grading of all the tensors ",it@Subscript["T",i],"."},{"SetGrading[",it@"T",",{",it@Subscript["grad",1],"\[Rule]",it@Subscript["val",1],",",it@Subscript["grad",2],"\[Rule]",it@Subscript["val",2],"\[Ellipsis]}] sets all gradings ",it@Subscript["grad",i]," to their respective values ",it@Subscript["val",i],"."}];
+SetGrading::usage=usagerows[{"SetGrading[",it@"T",",",it@"grad","\[Rule]",it@"val","] sets the grading ",it@"grad"," of the tensor or spinor ",it@"T"," to the value ",it@"val","."},{"SetGrading[{",it@Subscript["T",1],",",it@Subscript["T",2],"\[Ellipsis]}",it@"grad","\[Rule]",it@"val","] sets the grading of all the tensors ",it@Subscript["T","i"],"."},{"SetGrading[",it@"T",",{",it@Subscript["grad",1],"\[Rule]",it@Subscript["val",1],",",it@Subscript["grad",2],"\[Rule]",it@Subscript["val",2],"\[Ellipsis]}] sets all gradings ",it@Subscript["grad","i"]," to their respective values ",it@Subscript["val","i"],"."}];
 
 
 (* ::Input::Initialization:: *)
@@ -264,8 +348,8 @@ RemoveFiltration::usage=usagerows[{"RemoveFiltration[",it@"brst0","] removes the
 
 
 (* ::Input::Initialization:: *)
-CohomologyFromAnsatz::usage=usagerow[{CohomologyFromAnsatz[it@brst,it@ansatzcc,it@brstb,it@ansatzcb]," returns a list of representatives of elements of the cohomology Ker(",it@brst,")/Im(",it@brstb,"). For the BRST cohomology H(s), one needs to take ",it@brst,"=",it@brstb,"=BRST. A list of possible elements (cocycles) must be given as ",it@ansatzcc,", and a list of possible exact elements (coboundaries) as ",it@ansatzcb,". Both lists could be calculated using GenerateMonomials or GenerateMonomialsByGrading."}];
-RelativeCohomologyFromAnsatz::usage=usagerow[{RelativeCohomologyFromAnsatz[it@brst,it@ansatzcc,it@d,it@ansatzd,it@brstb,it@ansatzcb,it@db,it@ansatzdb]," returns a list of representatives of elements of the relative cohomology Ker(",it@brst,"|",it@d,")/Im(",it@brstb,"|",it@db,"). For the relative BRST cohomology H(s|d), one needs to take ",it@brst,"=",it@brstb,"=BRST, and ",it@d,"=",it@db,"=CD[-a]. A list of possible elements (cocycles) must be given as ",it@ansatzcc," and ",it@ansatzd,", and a list of possible exact elements (coboundaries) as ",it@ansatzcb," and ",it@ansatzdb,". All lists could be calculated using GenerateMonomials or GenerateMonomialsByGrading."}];
+CohomologyFromAnsatz::usage=usagerow[{CohomologyFromAnsatz[it@"brst",it@"ansatzcc",it@"brstb",it@"ansatzcb"]," returns a list of representatives of elements of the cohomology Ker(",it@"brst",")/Im(",it@"brstb","). For the BRST cohomology H(s), one needs to take ",it@"brst","=",it@"brstb","=BRST. A list of possible elements (cocycles) must be given as ",it@"ansatzcc",", and a list of possible exact elements (coboundaries) as ",it@"ansatzcb",". Both lists could be calculated using GenerateMonomials or GenerateMonomialsByGrading."}];
+RelativeCohomologyFromAnsatz::usage=usagerow[{RelativeCohomologyFromAnsatz[it@"brst",it@"ansatzcc",it@"d",it@"ansatzd",it@"brstb",it@"ansatzcb",it@"db",it@"ansatzdb"]," returns a list of representatives of elements of the relative cohomology Ker(",it@"brst","|",it@"d",")/Im(",it@"brstb","|",it@"db","). For the relative BRST cohomology H(s|d), one needs to take ",it@"brst","=",it@"brstb","=BRST, and ",it@"d","=",it@"db","=CD[-a]. A list of possible elements (cocycles) must be given as ",it@"ansatzcc"," and ",it@"ansatzd",", and a list of possible exact elements (coboundaries) as ",it@"ansatzcb"," and ",it@"ansatzdb",". All lists could be calculated using GenerateMonomials or GenerateMonomialsByGrading."}];
 CanonicalizeMethod::usage=usagerow[{"CanonicalizeMethod is an option for CohomologyFromAnsatz and RelativeCohomologyFromAnsatz that specifies the function applied to an expression after the differential has acted, to obtain a canonical form. By default, it is given by CollectTensors[ReduceInvariantTraceTensors[ContractMetric[SymmetrizeCovDs[Expand[#]]]&."}];
 SimplifyMethod::usage=usagerow[{"SimplifyMethod is an option for CohomologyFromAnsatz and RelativeCohomologyFromAnsatz that specifies the function applied to representatives of elements of the cohomology before they are returned. By default, it is given by Identity (i.e., no transformation)."}];
 
@@ -286,8 +370,15 @@ IrreducibleSpinTensor::notimpl="The requested irreducible tensors are not implem
 SplitGammaMatrix::nogamma="`1` is not a generalized \[Gamma] matrix.";
 EpsilonGammaReduce::wrongdim="Reduction of \[Epsilon] tensors and \[Gamma] matrices is only implemented for integer dimensions, but tangent bundle has dimension `1`.";
 EpsilonYoungProject::wrongdim="Young projection of \[Epsilon] tensors is only implemented for 4 dimensions, but tangent bundle has dimension `1`.";
-DefSpinor::nomanifold="No manifold found in `1`.";
-DefSpinor::majoranawrongdim="Majorana spinors only exist ist d=2,3,4 (mod 8) dimensions, but `1` has dimension `2`.";
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+(* FieldsX functions are renamed *)
+DefGenSpinor::nomanifold="No manifold found in `1`.";
+DefGenSpinor::majoranawrongdim="Majorana spinors only exist ist d=2,3,4 (mod 8) dimensions, but `1` has dimension `2`.";
+,
+(* Roundabout construction to avoid introducing the symbols if we don't need them (leaky evaluation of If) *)
+MessageName[Evaluate@Symbol["DefSpinor"],"nomanifold"]="No manifold found in `1`.";
+MessageName[Evaluate@Symbol["DefSpinor"],"majoranawrongdim"]="Majorana spinors only exist ist d=2,3,4 (mod 8) dimensions, but `1` has dimension `2`.";
+];
 FlipSpinor::toomany="Only `3` `1` allowed, but found `2`.";
 FlipSpinorsToConjugateAmount::amount="Only `3` `1` found in expression, but `4` `2` should be obtained.";
 FierzExpand::diffbundles="Spinors must be defined on the same spin bundle, but found two different bundles `1` and `2`.";
@@ -539,13 +630,13 @@ expr/.reps
 
 (* ::Input::Initialization:: *)
 Options[BundleSymmetryOf]={Sorted->True,Offset->False};
-BundleSymmetryOf[expr_,OptionsPattern[]]:=Module[{sym,indslist,indssorted,slotreps,sortedgenset,bundleindscount,symset},
+BundleSymmetryOf[expr_,OptionsPattern[]]:=Module[{i,sym,indslist,indssorted,slotreps,sortedgenset,bundleindscount,symset},
 sym=SymmetryOf[expr];
 indslist=Function[{#[[1]],#[[2]],VBundleOfIndex[#[[2]]]}]/@sym[[3]];
 (* Sort indices by bundle *)
 indssorted=SortBy[indslist,Last];
 slotreps=Table[Rule[indssorted[[i,1]],xAct`xTensor`Private`slot[i]],{i,1,Length[indssorted]}];
-sortedgenset=sym[[4]]/.(slotreps/.{xAct`xTensor`Private`slot[i_]:>i});
+sortedgenset=sym[[4]]/.(slotreps/.{xAct`xTensor`Private`slot[ii_]:>ii});
 (* Drop all indices from generating sets which do not belong to the bundle *)
 bundleindscount=Function[{#[[1,3]],#[[2]]}]/@Tally[indssorted,(Last@#1===Last@#2)&];
 symset=Table[With[{kmin=1+Plus@@(Last/@bundleindscount[[1;;i-1]]),kmax=Plus@@(Last/@bundleindscount[[1;;i]])},{bundleindscount[[i,1]],StrongGenSet[(sortedgenset[[1]]/.{k_Integer:>Sequence[]/;(k<kmin||k>kmax)}),Select[sortedgenset[[2]],Function[!MemberQ[#,k_Integer/;(k<kmin||k>kmax)&&k!=-1,Infinity]]]]}],{i,1,Length[bundleindscount]}];
@@ -648,20 +739,25 @@ $GammaMatrices={};
 
 
 (* ::Input::Initialization:: *)
-Options[DefSpinStructure]={DefInfo->{"spin structure",""}};
-DefSpinStructure[met_Symbol,inds_List,opts:OptionsPattern[]]:=Catch@Module[{tbundle,man,dimm,sdim,sbundle,cd,eucl,i,j,k,spininds,gammainds,g0,g1,gammasym,ccsym,tm,rie,gam},
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+DefGenSpinStructure[met_Symbol,inds_List]:=defSpinStruct[met,inds];
+,
+DefSpinStructure[met_Symbol,inds_List]:=defSpinStruct[met,inds];
+];
+defSpinStruct[met_Symbol,inds_List]:=Catch@Module[{funcname,tbundle,man,dimm,sdim,sbundle,cd,eucl,i,j,k,spininds,gammainds,g0,g1,gammasym,ccsym,tm,rie,gam},
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,funcname=DefGenSpinStructure;,funcname=DefSpinStructure;];
 (* check that metric is the metric of a tangent bundle, with no inner bundles *)
-If[!MetricQ[met],Throw@Message[DefSpinStructure::unknown,"metric",met]];
-If[xAct`xTensor`Private`FrozenMetricQ[met],Throw@Message[DefSpinStructure::error,"A frozen metric cannot be used."]];
+If[!MetricQ[met],Throw@Message[funcname::unknown,"metric",met]];
+If[xAct`xTensor`Private`FrozenMetricQ[met],Throw@Message[funcname::error,"A frozen metric cannot be used."]];
 tbundle=VBundleOfMetric[met];
 If[TangentBundleOfManifold@BaseOfVBundle@tbundle=!=tbundle,
-Throw@Message[DefSpinStructure::error,"The metric must be defined on a tangent bundle."]];
+Throw@Message[funcname::error,"The metric must be defined on a tangent bundle."]];
 cd=CovDOfMetric[met];
-If[Length@VBundlesOfCovD[cd]>1,Throw@Message[DefSpinStructure::error,"The Levi-Civita connection of the metric cannot be defined on inner vector bundles."]];
+If[Length@VBundlesOfCovD[cd]>1,Throw@Message[funcname::error,"The Levi-Civita connection of the metric cannot be defined on inner vector bundles."]];
 (* manifold must have integer dimension *)
 man=BaseOfVBundle[tbundle];
 dimm=DimOfManifold[man];
-If[(!IntegerQ[dimm])||(dimm<=0),Throw@Message[DefSpinStructure::invalid,dimm,"positive integer"]];
+If[(!IntegerQ[dimm])||(dimm<=0),Throw@Message[funcname::invalid,dimm,"positive integer"]];
 sdim=2^(If[EvenQ[dimm],dimm,dimm-1]/2);
 (* define the spin bundle *)
 sbundle=Symbol["Spin"<>SymbolName[man]];
@@ -673,7 +769,7 @@ xAct`xTensor`Private`defcovdFiber[cd,tbundle,sbundle,CurvatureQ[cd],DefInfo[cd]]
 (* define Gamma matrices. *)
 (* Currently we only support Clifford algebra s.t. \[Gamma]^\[Mu]\[Gamma]^\[Nu]+\[Gamma]^\[Nu]\[Gamma]^\[Mu]=2g^\[Mu]\[Nu] *)
 eucl=(SignDetOfMetric[met]==1);
-If[$DefInfoQ,If[eucl,Print["** DefSpinStructure: Assuming metric signature (+,...,+)."],Print["** DefSpinStructure: Assuming metric signature (-,+,...,+)."]]];
+If[$DefInfoQ,If[eucl,Print["** ",ToString@funcname,": Assuming metric signature (+,...,+)."],Print["** ",ToString@funcname,": Assuming metric signature (-,+,...,+)."]]];
 spininds=GetIndicesOfVBundle[sbundle,2];
 spininds[[1]]=-spininds[[1]];
 (* Define the ordinary \[Gamma] matrix first, all others depend on it. We first declare all \[Gamma]'s as real and fix afterwards. *)
@@ -749,24 +845,35 @@ inject[{tm->Tangent[man],rie->Riemann[cd],gam->gammasym},FRiemann[cd][mu_,nu_,a_
 (* fix some implicit dependencies to make Left/RightVarD work *)
 Map[xTagSet[{#,ImplicitTensorDepQ[#,met]},True]&,{Determinant[met,AIndex],epsilon[met],GiveSymbol[Christoffel,cd],GiveSymbol[Riemann,cd],GiveSymbol[Ricci,cd],GiveSymbol[RicciScalar,cd],GiveSymbol[Einstein,cd],GiveSymbol[Weyl,cd],GiveSymbol[TFRicci,cd],GiveSymbol[Kretschmann,cd],GiveSymbol[SymRiemann,cd],GiveSymbol[Schouten,CD]}];
 (* precompute \[Gamma] matrix products *)
-If[$DefInfoQ,PrintTemporary["** DefSpinStructure: Precomputing \[Gamma] products..."]];
+If[$DefInfoQ,PrintTemporary["** ",ToString@funcname,": Precomputing \[Gamma] products..."]];
 xUpSet[GammaMatrixProducts[met],PrecomputeGammaProducts[met]];
-If[$DefInfoQ,Print["** DefSpinStructure: Precomputing \[Gamma] products... done."]];
+If[$DefInfoQ,Print["** ",ToString@funcname,": Precomputing \[Gamma] products... done."]];
 ];
-SetNumberOfArguments[DefSpinStructure,{2,Infinity}];
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+SetNumberOfArguments[DefGenSpinStructure,2];
+Protect[DefGenSpinStructure];
+,
+SetNumberOfArguments[DefSpinStructure,2];
 Protect[DefSpinStructure];
+];
 
 
 (* ::Input::Initialization:: *)
-UndefSpinStructure[met_Symbol]:=Catch@Module[{cd,tbundle,sbundle,vislen,i,sdim,gammasym},
-If[!MetricQ[met],Throw@Message[UndefSpinStructure::unknown,"metric",met]];
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+UndefGenSpinStructure[met_Symbol]:=undefSpinStruct[met];
+,
+UndefSpinStructure[met_Symbol]:=undefSpinStruct[met];
+];
+undefSpinStruct[met_Symbol]:=Catch@Module[{funcname,cd,tbundle,sbundle,vislen,i,sdim,gammasym},
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,funcname=UndefGenSpinStructure;,funcname=UndefSpinStructure;];
+If[!MetricQ[met],Throw@Message[funcname::unknown,"metric",met]];
 cd=CovDOfMetric[met];
-If[Length@VBundlesOfCovD[cd]!=2,Throw@Message[UndefSpinStructure::missing,"spin structure","the metric "<>SymbolName[gg]]];
+If[Length@VBundlesOfCovD[cd]!=2,Throw@Message[funcname::missing,"spin structure","the metric "<>SymbolName[gg]]];
 {tbundle,sbundle}=VBundlesOfCovD[cd];
 (* check if there are tensors still defined on the spin bundle, except Gamma matrices and AChristoffel/FRiemann *)
 sdim=DimOfVBundle[sbundle];
 vislen=2+sdim+If[EvenQ[sdim],1,0]+If[SignDetOfMetric[met]==-1,1,0];
-If[Length@VisitorsOf[sbundle]>vislen,Throw@Message[UndefSpinStructure::noundef,"Spin bundle",sbundle,"it has visitors"]];
+If[Length@VisitorsOf[sbundle]>vislen,Throw@Message[funcname::noundef,"Spin bundle",sbundle,"it has visitors"]];
 (* remove associated symbols from covariant derivative *)
 Evaluate[cd]/:CurvatureQ[cd,sbundle]=.;
 VBundlesOfCovD[cd]^={VBundlesOfCovD[cd][[1]]};
@@ -784,8 +891,13 @@ UndefTensor[GiveSymbol[AChristoffel,cd]];
 (* finally undefine the bundle *)
 UndefVBundle[sbundle];
 ];
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+SetNumberOfArguments[UndefGenSpinStructure,1];
+Protect[UndefGenSpinStructure];
+,
 SetNumberOfArguments[UndefSpinStructure,1];
 Protect[UndefSpinStructure];
+];
 
 
 (* ::Input::Initialization:: *)
@@ -878,7 +990,7 @@ prodmet=Times@@(met@@@Transpose[{{ginds},{epsinds}[[1;;i]]}]);
 epswithin=eps@@Join[{epsinds}[[i+1;;-1]],-dinds];
 ToCanonical@ReleaseHold[(-1)^(i(dim+1))dim!/(i!(dim-i)!)inject[{pm->prodmet,ei->epswithin},Antisymmetrize[Hold[pm ei],{epsinds}]]]gam@@Join[dinds,{A,B}]
 ]];
-EpsilonGammaReduce[expr_,met_]:=Catch@Module[{eps,gam,gams,tm,dim,reps},
+EpsilonGammaReduce[expr_,met_]:=Catch@Module[{i,eps,gam,gams,tm,dim,reps},
 tm=VBundleOfMetric[met];
 dim=DimOfVBundle[tm];
 If[!IntegerQ[dim],Throw@Message[EpsilonGammaReduce::wrongdim,dim]];
@@ -941,29 +1053,37 @@ Protect[MajoranaQ,DiracQ,SpinorQ,SpinorUnbarQ,SpinorBarQ];
 
 
 (* ::Input::Initialization:: *)
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+Options[DefGenSpinor]={SpinorType->Majorana,Conjugate->False};
+DefGenSpinor[tensor_,dependencies_,options:OptionsPattern[{DefGenSpinor,DefTensor}]]:=DefGenSpinor[tensor,dependencies,GenSet[],options];
+DefGenSpinor[head_[indices__],dependencies_,sym_,options:OptionsPattern[{DefGenSpinor,DefTensor}]]:=defSpinor[head[indices],dependencies,sym,options];
+,
 Options[DefSpinor]={SpinorType->Majorana,Conjugate->False};
-DefSpinor[tensor_,dependencies_,options:OptionsPattern[{DefSpinor,DefTensor}]]:=DefSpinor[tensor,dependencies,GenSet[],options]
-DefSpinor[head_[indices__],dependencies_,sym_,options:OptionsPattern[{DefSpinor,DefTensor}]]:=Catch@Module[{st,conj,mfold,met,dimm,sbundle,bar,barpa,pns,dto,dtobar,g0,eucl},
+DefSpinor[tensor_,dependencies_,options:OptionsPattern[{DefSpinor,DefTensor}]]:=DefSpinor[tensor,dependencies,GenSet[],options];
+DefSpinor[head_[indices__],dependencies_,sym_,options:OptionsPattern[{DefSpinor,DefTensor}]]:=defSpinor[head[indices],dependencies,sym,options];
+];
+defSpinor[head_[indices__],dependencies_,sym_,options:OptionsPattern[{DefSpinor,DefGenSpinor,DefTensor}]]:=Catch@Module[{funcname,st,conj,mfold,met,dimm,sbundle,bar,barpa,pns,dto,dtobar,g0,eucl},
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,funcname=DefGenSpinor;,funcname=DefSpinor;];
 (* Options *)
 {st,conj,pns}=OptionValue[{SpinorType,Conjugate,ProtectNewSymbol}];
 (* Majorana spinors only exist in dimensions 2,3,4 mod 8. We only check the first manifold, which should make it work on products as well. *)
 mfold=SelectFirst[If[Head[dependencies]===List,dependencies,{dependencies}],ManifoldQ,Null];
-If[mfold==Null,Throw@Message[DefSpinor::nomanifold,dependencies]];
+If[mfold==Null,Throw@Message[funcname::nomanifold,dependencies]];
 dimm=DimOfManifold[mfold];
 met=MetricsOfVBundle[Tangent[mfold]];
-If[Length[met]<1,Throw@Message[DefSpinor::missing,"metric defined",mfold]];
+If[Length[met]<1,Throw@Message[funcname::missing,"metric defined",mfold]];
 met=First[met];
 (* check that a spin structure has been defined *)
-If[!xTensorQ[Symbol["Gamma"<>SymbolName[met]<>"1"]],Throw@Message[DefSpinor::missing,"spin structure defined",mfold]];
+If[!xTensorQ[Symbol["Gamma"<>SymbolName[met]<>"1"]],Throw@Message[funcname::missing,"spin structure defined",mfold]];
 (* check that the last index is a down index of the spin bundle *)
 sbundle=Symbol["Spin"<>SymbolName[mfold]];
-If[(!DownIndexQ[Last@{indices}])||(VBundleOfIndex[Last@{indices}]=!=sbundle),Throw@Message[DefSpinor::invalid,Last@{indices},"index"]];
+If[(!DownIndexQ[Last@{indices}])||(VBundleOfIndex[Last@{indices}]=!=sbundle),Throw@Message[funcname::invalid,Last@{indices},"index"]];
 eucl=(SignDetOfMetric[met]==1);
 bar=Symbol[StringJoin["bar",SymbolName[head]]];
 Switch[st,
-Majorana,If[MemberQ[{2,3,4},Mod[dimm,8]],MajoranaQ[head]^=True;MajoranaQ[bar]^=True,Throw@Message[DefSpinor::majoranawrongdim,mfold,dimm]],
+Majorana,If[MemberQ[{2,3,4},Mod[dimm,8]],MajoranaQ[head]^=True;MajoranaQ[bar]^=True,Throw@Message[funcname::majoranawrongdim,mfold,dimm]],
 Dirac,DiracQ[head]^=True;DiracQ[bar]^=True,
-_,Throw@Message[DefSpinor::invalid,"spinor type",st];
+_,Throw@Message[funcname::invalid,"spinor type",st];
 ];
 SpinorQ[head]^=True;SpinorQ[bar]^=True;
 If[TrueQ@conj,SpinorBarQ[head]^=True;SpinorBarQ[bar]^=False,SpinorBarQ[head]^=False;SpinorBarQ[bar]^=True];
@@ -1017,17 +1137,31 @@ Protect[LeftVarD];
 ];
 If[pns,Protect[head];Protect[bar]];
 ];
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+SetNumberOfArguments[DefGenSpinor,{2,Infinity}];
+Protect[DefGenSpinor];
+UndefGenSpinor[x___]:=UndefGenTensor[x];
+Protect[UndefGenSpinor];
+,
 SetNumberOfArguments[DefSpinor,{2,Infinity}];
 Protect[DefSpinor];
 UndefSpinor[x___]:=UndefTensor[x];
 Protect[UndefSpinor];
+];
 
 
 (* ::Input::Initialization:: *)
+If[SpinorsPkgLoaded&&SpinorsKeepDefs,
+DefOddSpinor[tens_,mani_,options:OptionsPattern[{DefGenSpinor,DefTensor}]]:=DefGenSpinor[tens,mani,Flatten[{options,GradeOfTensor->{CenterDot->1}}]];
+DefOddSpinor[tens_,mani_,sym_,options:OptionsPattern[{DefGenSpinor,DefTensor}]]:=DefGenSpinor[tens,mani,sym,Flatten[{options,GradeOfTensor->{CenterDot->1}}]];
+DefEvenSpinor[tens_,mani_,options:OptionsPattern[{DefGenSpinor,DefTensor}]]:=DefGenSpinor[tens,mani,Flatten[{options,GradeOfTensor->{CenterDot->0}}]];
+DefEvenSpinor[tens_,mani_,sym_,options:OptionsPattern[{DefGenSpinor,DefTensor}]]:=DefGenSpinor[tens,mani,sym,Flatten[{options,GradeOfTensor->{CenterDot->0}}]];
+,
 DefOddSpinor[tens_,mani_,options:OptionsPattern[{DefSpinor,DefTensor}]]:=DefSpinor[tens,mani,Flatten[{options,GradeOfTensor->{CenterDot->1}}]];
 DefOddSpinor[tens_,mani_,sym_,options:OptionsPattern[{DefSpinor,DefTensor}]]:=DefSpinor[tens,mani,sym,Flatten[{options,GradeOfTensor->{CenterDot->1}}]];
 DefEvenSpinor[tens_,mani_,options:OptionsPattern[{DefSpinor,DefTensor}]]:=DefSpinor[tens,mani,Flatten[{options,GradeOfTensor->{CenterDot->0}}]];
 DefEvenSpinor[tens_,mani_,sym_,options:OptionsPattern[{DefSpinor,DefTensor}]]:=DefSpinor[tens,mani,sym,Flatten[{options,GradeOfTensor->{CenterDot->0}}]];
+];
 SetNumberOfArguments[DefOddSpinor,{2,Infinity}];
 SetNumberOfArguments[DefEvenSpinor,{2,Infinity}];
 Protect[DefEvenSpinor,DefOddSpinor];
