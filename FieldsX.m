@@ -21,13 +21,13 @@
 
 (* ::Input::Initialization:: *)
 xAct`FieldsX`$xTensorVersionExpected={"1.1.3",{2018,2,28}};
-xAct`FieldsX`$Version={"1.0.1",{2020,11,17}};
+xAct`FieldsX`$Version={"1.0.2",{2021,01,23}};
 
 
 (* ::Input::Initialization:: *)
 (* FieldsX: An xTension to perform field-theoretic computations. *)
 
-(* Copyright (C) 2020 Markus B. Fr\[ODoubleDot]b *)
+(* Copyright (C) 2019-2021 Markus B. Fr\[ODoubleDot]b *)
 
 (* This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License,or (at your option) any later version.
 
@@ -48,12 +48,13 @@ You should have received a copy of the GNU General Public License along with thi
   
 (* :Context: xAct`FieldsX` *)
 
-(* :Package Version: 1.0.1 *)
+(* :Package Version: 1.0.2 *)
 
-(* :Copyright: Markus B. Fr\[ODoubleDot]b (2020) *)
+(* :Copyright: Markus B. Fr\[ODoubleDot]b (2019-2021) *)
 
 (* :History: 1.0   Initial release.
              1.0.1 Compatibility with Spinors package, fixed some leaking symbols
+             1.0.2 Fixed warning messages
  *)
 
 (* :Keywords: TODO *)
@@ -86,13 +87,20 @@ BeginPackage["xAct`FieldsX`",{"xAct`xTensor`","xAct`xPerm`","xAct`xCore`","xAct`
 
 
 (* ::Input::Initialization:: *)
+Unprotect@@Map[StringJoin["xAct`FieldsX`",#]&,DeleteCases[Names["xAct`FieldsX`*"],"$xTensorVersionExpected"|"$Version"]];
+ClearAll@@Map[StringJoin["xAct`FieldsX`",#]&,DeleteCases[Names["xAct`FieldsX`*"],"$xTensorVersionExpected"|"$Version"]];
+Unprotect["xAct`FieldsX`Private`*"];
+ClearAll["xAct`FieldsX`Private`*"];
+
+
+(* ::Input::Initialization:: *)
 If[Not@OrderedQ@Map[Last,{$xTensorVersionExpected,xAct`xTensor`$Version}],Throw@Message[General::versions,"xTensor",xAct`xTensor`$Version,$xTensorVersionExpected]]
 
 
 (* ::Input::Initialization:: *)
 Print[xAct`xCore`Private`bars]
 Print["Package xAct`FieldsX` version ",$Version[[1]],", ",$Version[[2]]];
-Print["Copyright \[Copyright] 2020 Markus B. Fr\[ODoubleDot]b under the GNU General Public License."];
+Print["Copyright \[Copyright] 2019-2021 Markus B. Fr\[ODoubleDot]b under the GNU General Public License."];
 Print["FieldsX uses the Multisets package \[Copyright] 2011 David Bevan under the Wolfram Library Archive License."];
 
 
@@ -198,7 +206,7 @@ End[];
 
 
 (* ::Input::Initialization:: *)
-DummiesIn::usage=usagerow[{"DummiesIn[",it@"bundle",",",it@"k","] returns a list of unique abstract dollar-indices on the vector bundle ",it@"bundle",", using the last of the user-defined indices."}];
+DummiesIn::usage=usagerow[{"DummiesIn[",it@"bundle",",",it@"k","] returns a list of ",it@"k"," unique abstract dollar-indices on the vector bundle ",it@"bundle",", using the last of the user-defined indices."}];
 TensorCount::usage=usagerows[{"TensorCount[",it@"expr",",",it@"T","] returns the number of tensors ",it@"T"," occuring in ",it@"expr",", including covariant derivatives of ",it@"T",". ",it@"expr"," can be given in pseudo index-free notation."},{"TensorCount[",it@"expr",",",it@"T",",False] does not include covariant derivatives of ",it@"T","."}];
 AllTensors::usage=usagerow[{"AllTensors[",it@"expr","] returns a list containing all tensors occuring in ",it@"expr"," together with their multiplicity. ",it@"expr"," must be given in pseudo index-free notation."}];
 
@@ -213,28 +221,28 @@ ReduceInvariantTraceTensors::usage=usagerows[{"ReduceInvariantTraceTensors[",it@
 
 
 (* ::Input::Initialization:: *)
-BundleSymmetryOf::usage=usagerows[{BundleSymmetryOf[it@"expr"]," gives a description (a result with head Symmetry) of the symmetry of ",it@"expr",". This includes a generating set for that symmetry using Cycles notation on the indices of ",it@"expr",". Extending SymmetryOf, the number of indices and the symmetry group are ordered by bundle."}];
+BundleSymmetryOf::usage=usagerows[{"BundleSymmetryOf[",it@"expr","] gives a description (a result with head Symmetry) of the symmetry of ",it@"expr",". This includes a generating set for that symmetry using Cycles notation on the indices of ",it@"expr",". Extending SymmetryOf, the number of indices and the symmetry group are ordered by bundle."}];
 Sorted::usage=usagerow[{"Sorted is an option for BundleSymmetryOf that specifies if the replacements should be sorted by slot number. By default, it is True."}];
 Offset::usage=Offset::usage<>"\n"<>usagerow[{"Offset is also an option for BundleSymmetryOf that specifies if the generating sets should use offsets for the slot numbers. By default, it is False."}];
 
 
 (* ::Input::Initialization:: *)
-CenterDot::usage=usagerow[{CenterDot," stands for the non-commutative product of Grassmann-odd indexed objects."}];
-Parity::usage=usagerow[{Parity[it@"expr"]," returns the Grassmann parity of ",it@"expr","."}];
-TimesToCenterDot::usage=usagerow[{TimesToCenterDot[it@"expr"]," returns ",it@"expr"," with all products replaced by non-commutative ones."}];
-DefEvenTensor::usage=usagerows[{DefEvenTensor[it@"T"[-it@"a",it@"b","\[Ellipsis]"],it@"M"]," defines ",it@"T"," to be a Grassmann-even tensor field on the manifold ",it@"M"," and the base manifolds associated to the vector bundles of its indices ",-it@"a",",",it@"b",",\[Ellipsis]"},{DefEvenTensor[it@"T"[-it@"a",it@"b","\[Ellipsis]"],it@"M",it@"sym"]," defines ",it@"T"," to be a Grassmann-even tensor field with symmetry ",it@"sym","."}];
-DefOddTensor::usage=usagerows[{DefOddTensor[it@"T"[-it@"a",it@"b","\[Ellipsis]"],it@"M"]," defines ",it@"T"," to be a Grassmann-odd tensor field on the manifold ",it@"M"," and the base manifolds associated to the vector bundles of its indices ",-it@"a",",",it@"b",",\[Ellipsis]"},{DefOddTensor[it@"T"[-it@"a",it@"b","\[Ellipsis]"],it@"M",it@"sym"]," defines ",it@"T"," to be a Grassmann-odd tensor field with symmetry ",it@"sym","."}];
+CenterDot::usage=usagerow[{"CenterDot stands for the non-commutative product of Grassmann-odd indexed objects."}];
+Parity::usage=usagerow[{"Parity[",it@"expr","] returns the Grassmann parity of ",it@"expr","."}];
+TimesToCenterDot::usage=usagerow[{"TimesToCenterDot[",it@"expr","], returns ",it@"expr"," with all products replaced by non-commutative ones."}];
+DefEvenTensor::usage=usagerows[{"DefEvenTensor[",it@"T","[-",it@"a",",",it@"b",",\[Ellipsis]],",it@"M","] defines ",it@"T"," to be a Grassmann-even tensor field on the manifold ",it@"M"," and the base manifolds associated to the vector bundles of its indices -",it@"a",",",it@"b",",\[Ellipsis]"},{"DefEvenTensor[",it@"T","[-",it@"a",",",it@"b",",\[Ellipsis]],",it@"M",",",it@"sym","] defines ",it@"T"," to be a Grassmann-even tensor field with symmetry ",it@"sym","."}];
+DefOddTensor::usage=usagerows[{"DefOddTensor[",it@"T","[-",it@"a",",",it@"b",",\[Ellipsis]],",it@"M","] defines ",it@"T"," to be a Grassmann-odd tensor field on the manifold ",it@"M"," and the base manifolds associated to the vector bundles of its indices -",it@"a",",",it@"b",",\[Ellipsis]"},{"DefOddTensor[",it@"T","[-",it@"a",",",it@"b",",\[Ellipsis]],",it@"M",",",it@"sym","] defines ",it@"T"," to be a Grassmann-odd tensor field with symmetry ",it@"sym","."}];
 $CenterDotTexSymbol::usage=usagerow[{"$CenterDotTexSymbol gives the symbol to use for TeX output of the non-commutative product. The default value is a space."}];
 
 
 (* ::Input::Initialization:: *)
-GammaMatrixQ::usage=usagerow[{GammaMatrixQ[it@"expr"]," gives True if ",it@"expr"," is a \[Gamma] matrix, and False otherwise."}];
-GammaStarQ::usage=usagerow[{GammaStarQ[it@"expr"]," gives True if ",it@"expr"," is the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix, and False otherwise."}];
-GammaZeroQ::usage=usagerow[{GammaStarQ[it@"expr"]," gives True if ",it@"expr"," is the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix, and False otherwise."}];
+GammaMatrixQ::usage=usagerow[{"GammaMatrixQ[",it@"expr","] gives True if ",it@"expr"," is a \[Gamma] matrix, and False otherwise."}];
+GammaStarQ::usage=usagerow[{"GammaStarQ[",it@"expr","] gives True if ",it@"expr"," is the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix, and False otherwise."}];
+GammaZeroQ::usage=usagerow[{"GammaZeroQ[",it@"expr","] gives True if ",it@"expr"," is the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix, and False otherwise."}];
 $GammaStarSign::usage=usagerow[{"$GammaStarSign defines the global sign of the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix. By default it is 1."}];
-GammaMatrix::usage=usagerows[{GammaMatrix[it@"metric",it@"n"]," returns the generalized (totally antisymmetric) \[Gamma] matrix of order ",it@"n"," of the Clifford algebra associated to the metric ",it@"metric","."},{GammaMatrix[it@"metric",Star]," returns the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix of the Clifford algebra associated to the metric ",it@"metric","."},{GammaMatrix[it@"metric",Zero]," returns the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix of the Clifford algebra associated to the metric ",it@"metric","."}];
-MetricOfGammaMatrix::usage=usagerow[{MetricOfGammaMatrix[it@"\[Gamma]"]," returns the metric associated to the Clifford algebra of ",it@"\[Gamma]","."}];
-$GammaMatrices::usage=usagerow[{$GammaMatrices," is a global variable storing the list of all currently defined \[Gamma] matrices."}];
+GammaMatrix::usage=usagerows[{"GammaMatrix[",it@"metric",",",it@"n","] returns the generalized (totally antisymmetric) \[Gamma] matrix of order ",it@"n"," of the Clifford algebra associated to the metric ",it@"metric","."},{"GammaMatrix[",it@"metric",", Star] returns the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix of the Clifford algebra associated to the metric ",it@"metric","."},{"GammaMatrix[",it@"metric",", Zero] returns the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix of the Clifford algebra associated to the metric ",it@"metric","."}];
+MetricOfGammaMatrix::usage=usagerow[{"MetricOfGammaMatrix[",it@"\[Gamma]","] returns the metric associated to the Clifford algebra of ",it@"\[Gamma]","."}];
+$GammaMatrices::usage=usagerow[{"$GammaMatrices is a global variable storing the list of all currently defined \[Gamma] matrices."}];
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,
 (* FieldsX functions are renamed *)
 (* Roundabout construction to avoid introducing the symbols if we don't need them (leaky evaluation of If) *)
@@ -246,20 +254,20 @@ MessageName[Evaluate@Symbol["DefSpinStructure"],"usage"]=
 usagerow[{"DefSpinStructure[",it@"metric",", {",it@"a",", ",it@"b",", \[Ellipsis]}] defines a spin structure on the base manifold ",it@"M"," of the metric ",it@"metric",". This includes the \[Gamma] matrices of the Clifford algebra associated to ",it@"metric"," and a spin bundle ",it@"SpinM"," with abstract indices ",it@"a",", ",it@"b",", \[Ellipsis], whose covariant derivative is induced from the one of ",it@"metric",", with the same name."}];
 MessageName[Evaluate@Symbol["UndefSpinStructure"],"usage"]=usagerow[{"UndefSpinStructure[",it@"metric","] undefines the spin structure on the base manifold of the metric ",it@"metric","."}];
 ];
-SpinBundleQ::usage=usagerow[{SpinBundleQ[it@"bundle"]," gives True if ",it@"bundle"," is a spin bundle, and False otherwise."}];
-SplitGammaMatrix::usage=usagerow[{SplitGammaMatrix[it@"\[Gamma]",it@"keep"]," decomposes the generalized \[Gamma] matrix ",it@"\[Gamma]", " into an antisymmetrized product of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
-SplitGammaMatrices::usage=usagerow[{SplitGammaMatrices[it@"expr",it@"keep"]," decomposes all the generalized \[Gamma] matrices appearing within ",it@"expr", " into antisymmetrized products of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
-JoinGammaMatrices::usage=usagerow[{JoinGammaMatrices[it@"expr"]," replaces products of \[Gamma] matrices within ",it@"expr"," by generalized \[Gamma] matrices."}];
-EpsilonGammaReduce::usage=usagerow[{EpsilonGammaReduce[it@"expr",it@"metric"]," replaces products of the totally antisymmetric \[Epsilon] tensor and generalized \[Gamma] matrices associated to the metric ",it@"metric"," within ",it@"expr"," by suitably contracted ones."}];
-EpsilonYoungProject::usage=usagerow[{EpsilonYoungProject[it@"expr",it@"metric"]," projects products of the totally antisymmetric \[Epsilon] tensor associated to the metric ",it@"metric"," and other tensors within ",it@"expr"," onto the corresponding Young tableaux."}];
+SpinBundleQ::usage=usagerow[{"SpinBundleQ[",it@"bundle","] gives True if ",it@"bundle"," is a spin bundle, and False otherwise."}];
+SplitGammaMatrix::usage=usagerow[{"SplitGammaMatrix[",it@"\[Gamma]",",",it@"keep","] decomposes the generalized \[Gamma] matrix ",it@"\[Gamma]", " into an antisymmetrized product of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
+SplitGammaMatrices::usage=usagerow[{"SplitGammaMatrices[",it@"\[Gamma]",",",it@"keep","] decomposes all the generalized \[Gamma] matrices appearing within ",it@"expr", " into antisymmetrized products of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
+JoinGammaMatrices::usage=usagerow[{"JoinGammaMatrices[",it@"expr","], replaces products of \[Gamma] matrices within ",it@"expr"," by generalized \[Gamma] matrices."}];
+EpsilonGammaReduce::usage=usagerow[{"EpsilonGammaReduce[",it@"expr",",",it@"metric","] replaces products of the totally antisymmetric \[Epsilon] tensor and generalized \[Gamma] matrices associated to the metric ",it@"metric"," within ",it@"expr"," by suitably contracted ones."}];
+EpsilonYoungProject::usage=usagerow[{"EpsilonYoungProject[",it@"expr",",",it@"metric","] projects products of the totally antisymmetric \[Epsilon] tensor associated to the metric ",it@"metric"," and other tensors within ",it@"expr"," onto the corresponding Young tableaux."}];
 
 
 (* ::Input::Initialization:: *)
-MajoranaQ::usage=usagerow[{MajoranaQ[it@"expr"]," gives True if ",it@"expr"," is a Majorana spinor, and False otherwise."}];
-DiracQ::usage=usagerow[{DiracQ[it@"expr"]," gives True if ",it@"expr"," is a Dirac spinor, and False otherwise."}];
-SpinorQ::usage=usagerow[{SpinorQ[it@"expr"]," gives True if ",it@"expr"," is a spinor, and False otherwise."}];
-SpinorUnbarQ::usage=usagerow[{SpinorUnbarQ[it@"expr"]," gives True if ",it@"expr"," is a spinor but not a conjugate one, and False otherwise."}];
-SpinorBarQ::usage=usagerow[{SpinorBarQ[it@"expr"]," gives True if ",it@"expr"," is a conjugate spinor, and False otherwise."}];
+MajoranaQ::usage=usagerow[{"MajoranaQ[",it@"expr","] gives True if ",it@"expr"," is a Majorana spinor, and False otherwise."}];
+DiracQ::usage=usagerow[{"DiracQ[",it@"expr","] gives True if ",it@"expr"," is a Dirac spinor, and False otherwise."}];
+SpinorQ::usage=usagerow[{"SpinorQ[",it@"expr","] gives True if ",it@"expr"," is a spinor, and False otherwise."}];
+SpinorUnbarQ::usage=usagerow[{"SpinorUnbarQ[",it@"expr","] gives True if ",it@"expr"," is a spinor but not a conjugate one, and False otherwise."}];
+SpinorBarQ::usage=usagerow[{"SpinorBarQ[",it@"expr","] gives True if ",it@"expr"," is a conjugate spinor, and False otherwise."}];
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,
 (* FieldsX functions are renamed *)
 (* Roundabout construction to avoid introducing the symbols if we don't need them (leaky evaluation of If) *)
@@ -285,28 +293,28 @@ SpinScalar::usage=usagerow[{"SpinScalar[",it@"expr","] gives True if ",it@"expr"
 
 
 (* ::Input::Initialization:: *)
-$SpinorFlipSigns::usage=usagerow[{$SpinorFlipSigns," is a table of signs appearing in the Majorana flip relations."}];
-SignOfGammaMatrix::usage=usagerow[{SignOfGammaMatrix[it@"\[Gamma]"]," returns the sign needed for the generalized \[Gamma] matrix ",it@"\[Gamma]"," appearing in the Majorana flip relations."}];
-FindSpinChain::usage=usagerow[{FindSpinChain[it@"expr",it@"start"[it@"inds"]]," returns a list of spinors and \[Gamma] matrices appearing within ",it@"expr"," whose indices are contracted with each other (spin chain). The chain starts with ",it@"start"[it@"inds"],", which must be a (conjugate) spinor appearing in ",it@"expr","."}];
-FlipSpinChain::usage=usagerow[{FlipSpinChain[it@"expr",it@"chain"]," returns ",it@"expr"," with the spin chain ",it@"chain"," flipped using the Majorana flip relations."}];
-FlipSpinor::usage=usagerows[{FlipSpinor[it@"expr"]," returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single spinor bilinear."},{FlipSpinor[it@"expr",it@"\[Psi]"]," returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single bilinear formed with the spinor ",it@"\[Psi]","."},{FlipSpinor[it@"expr",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1],it@Subscript["\[Psi]",2]]," returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single bilinear formed with the spinors ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1]," and ",it@Subscript["\[Psi]",2],"."}];
-FlipSpinorsToConjugateAmount::usage=usagerow[{FlipSpinorsToConjugateAmount[it@"expr",it@"\[Psi]","count"]," returns ",it@"expr"," with spinor bilinears formed with the spinor ",it@"\[Psi]"," flipped using the Majorana flip relations until ",it@"count"," conjugate spinors ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," remain."}];
-SortSpinor::usage=usagerows[{SortSpinor[it@"expr",it@"\[Psi]"->it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"]," returns ",it@"expr"," with all bilinears formed with the spinor ",it@"\[Psi]"," flipped using the Majorana flip relations. The spinor ",it@"\[Psi]"," and its conjugate ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," can be exchanged."},{SortSpinor[it@"expr",{it@Subscript["\[Psi]",1]->it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1],"\[Ellipsis]"}]," returns ",it@"expr"," with all bilinears formed with the spinors ",it@Subscript["\[Psi]",1],",\[Ellipsis] flipped using the Majorana flip relations. The spinors ",it@Subscript["\[Psi]","i"]," and their conjugates ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)","i"]," can be exchanged."}];
-SpinorFlipSymmetrize::usage=usagerow[{SpinorFlipSymmetrize[it@"expr"]," returns ",it@"expr"," with all spinor bilinears symmetrized using the Majorana flip relations."}];
+$SpinorFlipSigns::usage=usagerow[{"$SpinorFlipSigns is a table of signs appearing in the Majorana flip relations."}];
+SignOfGammaMatrix::usage=usagerow[{"SignOfGammaMatrix[",it@"\[Gamma]","] returns the sign needed for the generalized \[Gamma] matrix ",it@"\[Gamma]"," appearing in the Majorana flip relations."}];
+FindSpinChain::usage=usagerow[{"FindSpinChain[",it@"expr",",",it@"start","[",it@"inds","]] returns a list of spinors and \[Gamma] matrices appearing within ",it@"expr"," whose indices are contracted with each other (spin chain). The chain starts with ",it@"start"[it@"inds"],", which must be a (conjugate) spinor appearing in ",it@"expr","."}];
+FlipSpinChain::usage=usagerow[{"FlipSpinChain[",it@"expr",",",it@"chain","] returns ",it@"expr"," with the spin chain ",it@"chain"," flipped using the Majorana flip relations."}];
+FlipSpinor::usage=usagerows[{"FlipSpinor[",it@"expr","] returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single spinor bilinear."},{"FlipSpinor[",it@"expr",",",it@"\[Psi]","] returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single bilinear formed with the spinor ",it@"\[Psi]","."},{"FlipSpinor[",it@"expr",",",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1],",",it@Subscript["\[Psi]",2],"] returns ",it@"expr"," with a spinor bilinear flipped using the Majorana flip relations. ",it@"expr"," must contain a single bilinear formed with the spinors ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1]," and ",it@Subscript["\[Psi]",2],"."}];
+FlipSpinorsToConjugateAmount::usage=usagerow[{"FlipSpinorsToConjugateAmount[",it@"expr",",",it@"\[Psi]",",",it@"count","] returns ",it@"expr"," with spinor bilinears formed with the spinor ",it@"\[Psi]"," flipped using the Majorana flip relations until ",it@"count"," conjugate spinors ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," remain."}];
+SortSpinor::usage=usagerows[{"SortSpinor[",it@"expr",",",it@"\[Psi]"->it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)","] returns ",it@"expr"," with all bilinears formed with the spinor ",it@"\[Psi]"," flipped using the Majorana flip relations. The spinor ",it@"\[Psi]"," and its conjugate ",it@"\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)"," can be exchanged."},{"SortSpinor[",it@"expr",", {",it@Subscript["\[Psi]",1]->it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1],"\[Ellipsis]}] returns ",it@"expr"," with all bilinears formed with the spinors ",it@Subscript["\[Psi]",1],",\[Ellipsis] flipped using the Majorana flip relations. The spinors ",it@Subscript["\[Psi]","i"]," and their conjugates ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)","i"]," can be exchanged."}];
+SpinorFlipSymmetrize::usage=usagerow[{"SpinorFlipSymmetrize[",it@"expr","] returns ",it@"expr"," with all spinor bilinears symmetrized using the Majorana flip relations."}];
 FierzExpand::usage=usagerow[{"FierzExpand[",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1][Subscript["inds",1]],",",it@Subscript["\[Psi]",2][Subscript["inds",2]],"] expands the tensor product ",it@Subscript["\!\(\*OverscriptBox[\(\[Psi]\), \(_\)]\)",1][Subscript["inds",1]],it@Subscript["\[Psi]",2][Subscript["inds",2]]," in the basis of generalized \[Gamma] matrices (Fierz rearrangement). Both spinors may have covariant derivatives acting on them."}];
 
 
 (* ::Input::Initialization:: *)
-IrreducibleSpinTensor::usage=usagerow[{IrreducibleSpinTensor[it@"\[Psi]",it@"n",it@"rep"]," returns the irreducible tensor of the Lorentz group corresponding to the representation ",it@"rep"," appearing in the decomposition of the tensor product of ",it@"n"," copies of the spinor ",it@"\[Psi]","."}];
-IrreducibleSpinTensorQ::usage=usagerow[{IrreducibleSpinTensorQ[it@"expr"]," gives True if ",it@"expr"," is an irreducible tensor of the Lorentz group for some representation, and False otherwise."}];
-ExpandIrreducibleSpinTensor::usage=usagerow[{ExpandIrreducibleSpinTensor[it@"tens"[it@"\[Psi]","\[Ellipsis]"][it@"inds"]]," expands the irreducible tensor ",it@"tens"," into a sum of products of spinors ",it@"\[Psi]"," with the right symmetries."}];
-ExpandIrreducibleSpinTensors::usage=usagerow[{ExpandIrreducibleSpinTensors[it@"expr"]," expands all irreducible tensors of the Lorentz group within ",it@"expr"," into a sum of products of spinors with the right symmetries."}];
-IrreducibleSpinDecompose::usage=usagerow[{IrreducibleSpinDecompose[it@"expr",it@"\[Psi]"]," decomposes all products of spinors ",it@"\[Psi]"," within ",it@"expr"," into sums of irreducible representations of the Lorentz group."}];
-IrreducibleSpinProject::usage=usagerow[{IrreducibleSpinProject[it@"expr",it@"\[Psi]"]," projects all irreducible tensors of the Lorentz group within ",it@"expr"," depending on the spinor ",it@"\[Psi]"," onto their Young tableaux. This includes their products with \[Gamma] matrices, and induced symmetries if the spinor ",it@"\[Psi]"," depends on inner bundles."}];
+IrreducibleSpinTensor::usage=usagerow[{"IrreducibleSpinTensor[",it@"\[Psi]",",",it@"n",",",it@"rep","] returns the irreducible tensor of the Lorentz group corresponding to the representation ",it@"rep"," appearing in the decomposition of the tensor product of ",it@"n"," copies of the spinor ",it@"\[Psi]","."}];
+IrreducibleSpinTensorQ::usage=usagerow[{"IrreducibleSpinTensorQ[",it@"expr","] gives True if ",it@"expr"," is an irreducible tensor of the Lorentz group for some representation, and False otherwise."}];
+ExpandIrreducibleSpinTensor::usage=usagerow[{"ExpandIrreducibleSpinTensor[",it@"tens","[",it@"\[Psi]",",\[Ellipsis]][",it@"inds","]] expands the irreducible tensor ",it@"tens"," into a sum of products of spinors ",it@"\[Psi]"," with the right symmetries."}];
+ExpandIrreducibleSpinTensors::usage=usagerow[{"ExpandIrreducibleSpinTensors[",it@"expr","] expands all irreducible tensors of the Lorentz group within ",it@"expr"," into a sum of products of spinors with the right symmetries."}];
+IrreducibleSpinDecompose::usage=usagerow[{"IrreducibleSpinDecompose[",it@"expr",",",it@"\[Psi]","] decomposes all products of spinors ",it@"\[Psi]"," within ",it@"expr"," into sums of irreducible representations of the Lorentz group."}];
+IrreducibleSpinProject::usage=usagerow[{"IrreducibleSpinProject[",it@"expr",",",it@"\[Psi]","] projects all irreducible tensors of the Lorentz group within ",it@"expr"," depending on the spinor ",it@"\[Psi]"," onto their Young tableaux. This includes their products with \[Gamma] matrices, and induced symmetries if the spinor ",it@"\[Psi]"," depends on inner bundles."}];
 
 
 (* ::Input::Initialization:: *)
-$Gradings::usage=usagerow[{$Gradings," is a global variable storing the list of all currently defined gradings."}];
+$Gradings::usage=usagerow[{"$Gradings is a global variable storing the list of all currently defined gradings."}];
 DefGrading::usage=usagerows[{"DefGrading[",it@"grad","] defines the grading ",it@"grad","."},{"DefGrading[{",it@Subscript["grad",1],"\[Ellipsis]}] defines the gradings ",it@Subscript["grad",1],",\[Ellipsis]"}];
 SumGrading::usage=usagerow[{"SumGrading is an option for DefGrading that specifies a function that determines the grading of a sum. By default it is Undefined&."}];
 ZeroGrading::usage=usagerow[{"ZeroGrading is an option for DefGrading that specifies the grading of 0. By default it is Undefined."}];
@@ -320,12 +328,12 @@ RightVarD::usage=usagerows[{"RightVarD[",it@"T","[",it@"inds","]][",it@"expr","]
 
 
 (* ::Input::Initialization:: *)
-FindAllContractions::usage=usagerows[{FindAllContractions[it@"expr"]," returns a list of all possible full contractions of ",it@"expr"," over its free indices. Extending AllContractions, this function also works if the tensors within ",it@"expr"," depend on more than one bundle. ",it@"expr","can be given in pseudo index-free notation."},{FindAllContractions[it@"expr",{it@"a",it@"b","\[Ellipsis]"}]," returns a list of all possible full contractions of ",it@"expr"," that have ",it@"a",",",it@"b","\[Ellipsis] as free indices."},{FindAllContractions[it@"expr",{it@"a",it@"b","\[Ellipsis]"},it@"sym"]," returns a list of all possible full contractions of ",it@"expr"," with the symmetry ",it@"sym"," imposed on the free indices ",it@"a",",",it@"b","\[Ellipsis]"}];
+FindAllContractions::usage=usagerows[{"FindAllContractions[",it@"expr","] returns a list of all possible full contractions of ",it@"expr"," over its free indices. Extending AllContractions, this function also works if the tensors within ",it@"expr"," depend on more than one bundle. ",it@"expr","can be given in pseudo index-free notation."},{"FindAllContractions[",it@"expr",", {",it@"a",",",it@"b",",\[Ellipsis]}] returns a list of all possible full contractions of ",it@"expr"," that have ",it@"a",",",it@"b","\[Ellipsis] as free indices."},{"FindAllContractions[",it@"expr",", {",it@"a",",",it@"b",",\[Ellipsis]},",it@"sym","] returns a list of all possible full contractions of ",it@"expr"," with the symmetry ",it@"sym"," imposed on the free indices ",it@"a",",",it@"b","\[Ellipsis]"}];
 SymmetrizeMethod::usage=SymmetrizeMethod::usage<>"\n"<>usagerow[{"SymmetrizeMethod is also an option for FindAllContractions that specifies a function to symmetrize the free indices. By default, it is ImposeSymmetry."}];
 AuxiliaryTensor::usage=AuxiliaryTensor::usage<>"\n"<>usagerow[{"AuxiliaryTensor is also an option for FindAllContractions that specifies the name of the auxiliary tensor used for the free indices."}];
 Parallelization::usage=Parallelization::usage<>"\n"<>usagerow[{"Parallelization is also an option for FindAllContractions that specifies whether contractions should be calculated in parallel."}];
-GenerateMonomials::usage=usagerow[{GenerateMonomials[it@"fields",it@"invtens"]," returns a list of all monomials that can be formed from the fields ",it@"fields",", their covariant derivatives, and the invariant tensors ",it@"invtens","."}];
-GenerateMonomialsByGrading::usage=usagerow[{GenerateMonomialsByGrading[it@"fields",it@"invtens",it@"grad"->it@"n"]," returns a list of all monomials that can be formed from the fields ",it@"fields",", their covariant derivatives, and the invariant tensors ",it@"invtens",", restricted to the value ",it@"n"," for the grading ",it@"grad","."}];
+GenerateMonomials::usage=usagerow[{"GenerateMonomials[",it@"fields",",",it@"invtens","] returns a list of all monomials that can be formed from the fields ",it@"fields",", their covariant derivatives, and the invariant tensors ",it@"invtens","."}];
+GenerateMonomialsByGrading::usage=usagerow[{"GenerateMonomialsByGrading[",it@"fields",",",it@"invtens",",",it@"grad"->it@"n","] returns a list of all monomials that can be formed from the fields ",it@"fields",", their covariant derivatives, and the invariant tensors ",it@"invtens",", restricted to the value ",it@"n"," for the grading ",it@"grad","."}];
 FreeIndices::usage=usagerow[{"FreeIndices is an option for GenerateMonomials and GenerateMonomialsByGrading that specifies a list of free (uncontracted) indices that the returned monomials should have. By default, it is an empty list."}];
 Constraint::usage=usagerow[{"Constraint is an option for GenerateMonomials and GenerateMonomialsByGrading that specifies the constraint function, a function returning True if its argument should be added to the list of monomials and False otherwise. By default, it is given by True& (i.e., no constraint)."}];
 Replacements::usage=usagerow[{"Replacements is an option for GenerateMonomials and GenerateMonomialsByGrading that specifies a list of replacements to be made after contracting free indices in each monomial. By default, it is an empty list."}];
@@ -337,19 +345,19 @@ FilterGammaMatrices::usage=usagerow[{"FilterGammaMatrices is an option for Gener
 
 
 (* ::Input::Initialization:: *)
-DefOddDifferential::usage=usagerow[{DefOddDifferential[it@"brst"]," defines a Grassmann-odd differential ",it@"brst"," that commutes with covariant derivatives. The BRST differential BRST is predefined."}];
-BRST::usage=usagerow[{BRST[it@"expr"]," returns the BRST differential applied to ",it@"expr",". BRST transformations can be defined using F/:BRST[F[inds]]^:=G[inds]."}];
-BRSTWeightInequalities::usage=usagerows[{BRSTWeightInequalities[{it@Subscript["field",1],it@Subscript["field",2],"\[Ellipsis]"},it@"brst",it@"weight"]," returns a list with inequalities that the weight function ",it@"weight"," has to fulfill to be an admissible filtration for the BRST operator ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis]"},{BRSTWeightInequalities[{it@Subscript["field",1],it@Subscript["field",2],"\[Ellipsis]"},it@"brst",it@"weight",False]," does not apply the Reduce function to the obtained system of inequalities before returning it."}];
-FindBRSTWeights::usage=usagerow[{FindBRSTWeights[{it@Subscript["field",1],it@Subscript["field",2],"\[Ellipsis]"},it@"brst",it@"maxweight"]," returns a list of all weights admissible for filtrations of the BRST differential ",it@"brst", " applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis], with the maximum weight of each field restricted to be \[LessEqual]",it@"maxweight","."}];
-CheckFiltration::usage=usagerows[{CheckFiltration[{it@Subscript["field",1],it@Subscript["field",2],"\[Ellipsis]"},{it@Subscript["w",1],it@Subscript["w",2],"\[Ellipsis]"},it@"brst"]," displays a table of the lowest-order terms of the BRST differential ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis] and filtrated according to the weights ",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]",CheckFiltration[{it@Subscript["field",1]->it@Subscript["w",1],it@Subscript["field",2]->it@Subscript["w",2],"\[Ellipsis]"},it@"brst"]," displays a table of the lowest-order terms of the BRST differential ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis] and filtrated according to the weights ",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]"}];
+DefOddDifferential::usage=usagerow[{"DefOddDifferential[",it@"brst","] defines a Grassmann-odd differential ",it@"brst"," that commutes with covariant derivatives. The BRST differential BRST is predefined."}];
+BRST::usage=usagerow[{"BRST[",it@"expr","] returns the BRST differential applied to ",it@"expr",". BRST transformations can be defined using F/:BRST[F[inds]]^:=G[inds]."}];
+BRSTWeightInequalities::usage=usagerows[{"BRSTWeightInequalities[{",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis]},",it@"brst",",",it@"weight","] returns a list with inequalities that the weight function ",it@"weight"," has to fulfill to be an admissible filtration for the BRST operator ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis]"},{"BRSTWeightInequalities[{",it@Subscript["field",1],",",it@Subscript["field",2],"\[Ellipsis]},",it@"brst",",",it@"weight",",False] does not apply the Reduce function to the obtained system of inequalities before returning it."}];
+FindBRSTWeights::usage=usagerow[{"FindBRSTWeights[{",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis]},",it@"brst",",",it@"maxweight","] returns a list of all weights admissible for filtrations of the BRST differential ",it@"brst", " applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis], with the maximum weight of each field restricted to be \[LessEqual]",it@"maxweight","."}];
+CheckFiltration::usage=usagerows[{"CheckFiltration[{",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis]}, {",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]},",it@"brst","] displays a table of the lowest-order terms of the BRST differential ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis] and filtrated according to the weights ",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]","CheckFiltration[{",it@Subscript["field",1]->it@Subscript["w",1],",",it@Subscript["field",2]->it@Subscript["w",2],",\[Ellipsis]},",it@"brst","] displays a table of the lowest-order terms of the BRST differential ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis] and filtrated according to the weights ",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]"}];
 Display::usage=Display::usage<>"\n"<>usagerow[{"Display is also an option for CheckFiltration with values IndexFree and Full that specifies how the table entries should be displayed."}];
-Filtrate::usage=usagerows[{Filtrate[{it@Subscript["field",1],it@Subscript["field",2],"\[Ellipsis]"},{it@Subscript["w",1],it@Subscript["w",2],"\[Ellipsis]"},it@"brst"->it@"brst0"]," defines rules for the differential ",it@"brst0"," such that it acts as the lowest-order terms of the BRST differential ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis] and filtrated according to the weights ",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]"},{Filtrate[{it@Subscript["field",1]->it@Subscript["w",1],it@Subscript["field",2]->it@Subscript["w",2],"\[Ellipsis]"},it@"brst"->it@"brst0"]," defines rules for the differential ",it@"brst0"," such that it acts as the lowest-order terms of the BRST differential ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis] and filtrated according to the weights ",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]"}];
+Filtrate::usage=usagerows[{"Filtrate[{",it@Subscript["field",1],",",it@Subscript["field",2],"\[Ellipsis]}, {",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]},",it@"brst"->it@"brst0","] defines rules for the differential ",it@"brst0"," such that it acts as the lowest-order terms of the BRST differential ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis] and filtrated according to the weights ",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]"},{"Filtrate[{",it@Subscript["field",1]->it@Subscript["w",1],",",it@Subscript["field",2]->it@Subscript["w",2],",\[Ellipsis]},",it@"brst"->it@"brst0","] defines rules for the differential ",it@"brst0"," such that it acts as the lowest-order terms of the BRST differential ",it@"brst"," applied to the fields ",it@Subscript["field",1],",",it@Subscript["field",2],",\[Ellipsis] and filtrated according to the weights ",it@Subscript["w",1],",",it@Subscript["w",2],",\[Ellipsis]"}];
 RemoveFiltration::usage=usagerows[{"RemoveFiltration[",it@"brst0","] removes the rules defined for the differential ",it@"brst0"," defined by Filtrate."}];
 
 
 (* ::Input::Initialization:: *)
-CohomologyFromAnsatz::usage=usagerow[{CohomologyFromAnsatz[it@"brst",it@"ansatzcc",it@"brstb",it@"ansatzcb"]," returns a list of representatives of elements of the cohomology Ker(",it@"brst",")/Im(",it@"brstb","). For the BRST cohomology H(s), one needs to take ",it@"brst","=",it@"brstb","=BRST. A list of possible elements (cocycles) must be given as ",it@"ansatzcc",", and a list of possible exact elements (coboundaries) as ",it@"ansatzcb",". Both lists could be calculated using GenerateMonomials or GenerateMonomialsByGrading."}];
-RelativeCohomologyFromAnsatz::usage=usagerow[{RelativeCohomologyFromAnsatz[it@"brst",it@"ansatzcc",it@"d",it@"ansatzd",it@"brstb",it@"ansatzcb",it@"db",it@"ansatzdb"]," returns a list of representatives of elements of the relative cohomology Ker(",it@"brst","|",it@"d",")/Im(",it@"brstb","|",it@"db","). For the relative BRST cohomology H(s|d), one needs to take ",it@"brst","=",it@"brstb","=BRST, and ",it@"d","=",it@"db","=CD[-a]. A list of possible elements (cocycles) must be given as ",it@"ansatzcc"," and ",it@"ansatzd",", and a list of possible exact elements (coboundaries) as ",it@"ansatzcb"," and ",it@"ansatzdb",". All lists could be calculated using GenerateMonomials or GenerateMonomialsByGrading."}];
+CohomologyFromAnsatz::usage=usagerow[{"CohomologyFromAnsatz[",it@"brst",",",it@"ansatzcc",",",it@"brstb",",",it@"ansatzcb","] returns a list of representatives of elements of the cohomology Ker(",it@"brst",")/Im(",it@"brstb","). For the BRST cohomology H(s), one needs to take ",it@"brst","=",it@"brstb","=BRST. A list of possible elements (cocycles) must be given as ",it@"ansatzcc",", and a list of possible exact elements (coboundaries) as ",it@"ansatzcb",". Both lists could be calculated using GenerateMonomials or GenerateMonomialsByGrading."}];
+RelativeCohomologyFromAnsatz::usage=usagerow[{"RelativeCohomologyFromAnsatz[",it@"brst",",",it@"ansatzcc",",",it@"d",",",it@"ansatzd",",",it@"brstb",",",it@"ansatzcb",",",it@"db",",",it@"ansatzdb","] returns a list of representatives of elements of the relative cohomology Ker(",it@"brst","|",it@"d",")/Im(",it@"brstb","|",it@"db","). For the relative BRST cohomology H(s|d), one needs to take ",it@"brst","=",it@"brstb","=BRST, and ",it@"d","=",it@"db","=CD[-a]. A list of possible elements (cocycles) must be given as ",it@"ansatzcc"," and ",it@"ansatzd",", and a list of possible exact elements (coboundaries) as ",it@"ansatzcb"," and ",it@"ansatzdb",". All lists could be calculated using GenerateMonomials or GenerateMonomialsByGrading."}];
 CanonicalizeMethod::usage=usagerow[{"CanonicalizeMethod is an option for CohomologyFromAnsatz and RelativeCohomologyFromAnsatz that specifies the function applied to an expression after the differential has acted, to obtain a canonical form. By default, it is given by CollectTensors[ReduceInvariantTraceTensors[ContractMetric[SymmetrizeCovDs[Expand[#]]]&."}];
 SimplifyMethod::usage=usagerow[{"SimplifyMethod is an option for CohomologyFromAnsatz and RelativeCohomologyFromAnsatz that specifies the function applied to representatives of elements of the cohomology before they are returned. By default, it is given by Identity (i.e., no transformation)."}];
 
@@ -391,7 +399,7 @@ $ContextPath=DeleteCases[$ContextPath,"xAct`FieldsX`Private`"];
 (* ::Input::Initialization:: *)
 (****************************** 1.7 Begin private ******************************)
 
-Begin["`Private`"]
+Begin["`Private`"];
 
 
 (* ::Input::Initialization:: *)
@@ -456,7 +464,7 @@ SetNumberOfArguments[f_,{2,4}]:=(xAct`xCore`Private`setargs[f,0,{2,4}];xAct`xCor
 
 
 (* ::Input::Initialization:: *)
-DummiesIn[bundle_?VBundleQ,k_Integer]:=Nest[Append[#,DummyIn[bundle]]&,{},k]
+DummiesIn[bundle_?VBundleQ,k_Integer]:=Nest[Append[#,DummyIn[bundle]]&,{},k];
 SetNumberOfArguments[DummiesIn,2];
 Protect[DummiesIn];
 
@@ -651,7 +659,7 @@ Protect[BundleSymmetryOf];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.4 Noncommuting product, Grassmann-even and -odd tensors ******************************)
+(****************************** 2.4 Noncommutative product, Grassmann-even and -odd tensors ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -1431,7 +1439,7 @@ If[!xAct`xTensor`xTensorQ[tens[1,2,3,4,5]],
 xUpSetDelayed[xAct`xTensor`xTensorQ[tens[spinor_,count_,replabel_,slots_,sym_]],True];
 xUpSetDelayed[IrreducibleSpinTensorQ[tens],True];
 inject[{ttens->tens},xAct`xTensor`PrintAs[ttens[spinor_,count_,replabel_,slots_,sym_]]^:=RowBox[{SuperscriptBox["Irr"<>xAct`xTensor`PrintAs[sbundle],RowBox[{"(",count,",",StyleBox[replabel,Bold],")"}]],"[",xAct`xTensor`PrintAs[spinor],"]"}]];
-inject[{ttens->tens},xAct`TexAct`Tex[ttens[spinor_,count_,replabel_,slots_,sym_]]:="\mathrm{Irr}"<>xAct`TexAct`Tex[sbundle]<>"^{("<>ToString[count]<>",\mathbf{"<>replabel<>"})}["<>xAct`TexAct`Tex[spinor]<>"]"];
+inject[{ttens->tens},xAct`TexAct`Tex[ttens[spinor_,count_,replabel_,slots_,sym_]]:="\\mathrm{Irr}"<>xAct`TexAct`Tex[sbundle]<>"^{("<>ToString[count]<>",\\mathbf{"<>replabel<>"})}["<>xAct`TexAct`Tex[spinor]<>"]"];
 xAct`xTensor`SlotsOfTensor[tens[spinor_,count_,replabel_,slots_,sym_]]^:=slots;
 xAct`xTensor`DependenciesOfTensor[tens[spinor_,count_,replabel_,slots_,sym_]]^:=xAct`xTensor`DependenciesOfTensor[spinor];
 xAct`xTensor`DefInfo[tens[spinor_,count_,replabel_,slots_,sym_]]^:={"tensor","Irreducible spin tensor constructed from "<>SymbolName[spinor]<>" ."};
