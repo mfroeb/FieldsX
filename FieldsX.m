@@ -20,8 +20,8 @@
 
 
 (* ::Input::Initialization:: *)
-xAct`FieldsX`$xTensorVersionExpected={"1.1.3",{2018,2,28}};
-xAct`FieldsX`$Version={"1.0.2",{2021,01,23}};
+xAct`FieldsX`$xTensorVersionExpected={"1.1.4",{2020,2,16}};
+xAct`FieldsX`$Version={"1.0.3",{2021,02,14}};
 
 
 (* ::Input::Initialization:: *)
@@ -48,13 +48,15 @@ You should have received a copy of the GNU General Public License along with thi
   
 (* :Context: xAct`FieldsX` *)
 
-(* :Package Version: 1.0.2 *)
+(* :Package Version: 1.0.3 *)
 
 (* :Copyright: Markus B. Fr\[ODoubleDot]b (2019-2021) *)
 
 (* :History: 1.0   Initial release.
              1.0.1 Compatibility with Spinors package, fixed some leaking symbols
              1.0.2 Fixed warning messages
+             1.0.3 BRST operator only commutes with PD (not general CovD), optimized JoinGammaMatrices and \[Gamma]* handling,
+                   fixed EpsilonGammaReduce for partially contracted \[Gamma] matrices, added dual \[Gamma] matrices
  *)
 
 (* :Keywords: TODO *)
@@ -240,7 +242,7 @@ GammaMatrixQ::usage=usagerow[{"GammaMatrixQ[",it@"expr","] gives True if ",it@"e
 GammaStarQ::usage=usagerow[{"GammaStarQ[",it@"expr","] gives True if ",it@"expr"," is the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix, and False otherwise."}];
 GammaZeroQ::usage=usagerow[{"GammaZeroQ[",it@"expr","] gives True if ",it@"expr"," is the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix, and False otherwise."}];
 $GammaStarSign::usage=usagerow[{"$GammaStarSign defines the global sign of the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix. By default it is 1."}];
-GammaMatrix::usage=usagerows[{"GammaMatrix[",it@"metric",",",it@"n","] returns the generalized (totally antisymmetric) \[Gamma] matrix of order ",it@"n"," of the Clifford algebra associated to the metric ",it@"metric","."},{"GammaMatrix[",it@"metric",", Star] returns the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix of the Clifford algebra associated to the metric ",it@"metric","."},{"GammaMatrix[",it@"metric",", Zero] returns the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix of the Clifford algebra associated to the metric ",it@"metric","."}];
+GammaMatrix::usage=usagerows[{"GammaMatrix[",it@"metric",", ",it@"n","] returns the generalized (totally antisymmetric) \[Gamma] matrix of order ",it@"n"," of the Clifford algebra associated to the metric ",it@"metric","."},{"GammaMatrix[",it@"metric",", Star] returns the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix of the Clifford algebra associated to the metric ",it@"metric","."},{"GammaMatrix[",it@"metric",", Zero] returns the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix of the Clifford algebra associated to the metric ",it@"metric","."}];
 MetricOfGammaMatrix::usage=usagerow[{"MetricOfGammaMatrix[",it@"\[Gamma]","] returns the metric associated to the Clifford algebra of ",it@"\[Gamma]","."}];
 $GammaMatrices::usage=usagerow[{"$GammaMatrices is a global variable storing the list of all currently defined \[Gamma] matrices."}];
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,
@@ -255,9 +257,11 @@ usagerow[{"DefSpinStructure[",it@"metric",", {",it@"a",", ",it@"b",", \[Ellipsis
 MessageName[Evaluate@Symbol["UndefSpinStructure"],"usage"]=usagerow[{"UndefSpinStructure[",it@"metric","] undefines the spin structure on the base manifold of the metric ",it@"metric","."}];
 ];
 SpinBundleQ::usage=usagerow[{"SpinBundleQ[",it@"bundle","] gives True if ",it@"bundle"," is a spin bundle, and False otherwise."}];
-SplitGammaMatrix::usage=usagerow[{"SplitGammaMatrix[",it@"\[Gamma]",",",it@"keep","] decomposes the generalized \[Gamma] matrix ",it@"\[Gamma]", " into an antisymmetrized product of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
-SplitGammaMatrices::usage=usagerow[{"SplitGammaMatrices[",it@"\[Gamma]",",",it@"keep","] decomposes all the generalized \[Gamma] matrices appearing within ",it@"expr", " into antisymmetrized products of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
-JoinGammaMatrices::usage=usagerow[{"JoinGammaMatrices[",it@"expr","], replaces products of \[Gamma] matrices within ",it@"expr"," by generalized \[Gamma] matrices."}];
+SplitGammaMatrix::usage=usagerow[{"SplitGammaMatrix[",it@"\[Gamma]",", ",it@"keep","] decomposes the generalized \[Gamma] matrix ",it@"\[Gamma]", " into an antisymmetrized product of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
+SplitGammaMatrices::usage=usagerow[{"SplitGammaMatrices[",it@"\[Gamma]",", ",it@"keep","] decomposes all the generalized \[Gamma] matrices appearing within ",it@"expr", " into antisymmetrized products of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
+JoinGammaMatrices::usage=usagerow[{"JoinGammaMatrices[",it@"expr",", ",it@"keep","] replaces products of \[Gamma] matrices within ",it@"expr"," by generalized \[Gamma] matrices. If ",it@"keep","=True, products of the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix and other generalized \[Gamma] matrices are kept."}];
+DualGammaMatrix::usage=usagerow[{"DualGammaMatrix[",it@"\[Gamma]","[",it@"\[Mu]",", ..., -",it@"A",", ",it@"B","]] returns the dual matrix of the generalized \[Gamma] matrix ",it@"\[Gamma]","[",it@"\[Mu]",", ..., -",it@"A",", ",it@"B","]."}];
+GammaMatricesToDual::usage=usagerows[{"GammaMatricesToDual[",it@"expr","] replaces generalized \[Gamma] matrices with more than d/2 indices within ",it@"expr"," by their dual, where d is the dimension of the manifold."},{"GammaMatricesToDual[",it@"expr",", All] replaces all generalized \[Gamma] matrices within ",it@"expr"," by their dual."},{"GammaMatricesToDual[",it@"expr",", ",it@"\[Gamma]","] replaces only the matrix \[Gamma] within ",it@"expr"," by its dual."}];
 EpsilonGammaReduce::usage=usagerow[{"EpsilonGammaReduce[",it@"expr",",",it@"metric","] replaces products of the totally antisymmetric \[Epsilon] tensor and generalized \[Gamma] matrices associated to the metric ",it@"metric"," within ",it@"expr"," by suitably contracted ones."}];
 EpsilonYoungProject::usage=usagerow[{"EpsilonYoungProject[",it@"expr",",",it@"metric","] projects products of the totally antisymmetric \[Epsilon] tensor associated to the metric ",it@"metric"," and other tensors within ",it@"expr"," onto the corresponding Young tableaux."}];
 
@@ -376,6 +380,7 @@ IrreducibleSpinTensor::nomajorana="Only Majorana spinors are implemented so far.
 IrreducibleSpinTensor::invalidrep="`1` is not a valid irreducible representation for the given spinor and multiplicity.";
 IrreducibleSpinTensor::notimpl="The requested irreducible tensors are not implemented yet.";
 SplitGammaMatrix::nogamma="`1` is not a generalized \[Gamma] matrix.";
+DualGammaMatrix::wronggamma="Cannot dualise \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\).";
 EpsilonGammaReduce::wrongdim="Reduction of \[Epsilon] tensors and \[Gamma] matrices is only implemented for integer dimensions, but tangent bundle has dimension `1`.";
 EpsilonYoungProject::wrongdim="Young projection of \[Epsilon] tensors is only implemented for 4 dimensions, but tangent bundle has dimension `1`.";
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,
@@ -804,6 +809,7 @@ DefTensor[g0@@spininds,man,{PrintAs->"\!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\
 AppendTo[$GammaMatrices,g0];
 xUpSetDelayed[cd[_]@g0[__],0];
 xTagSetDelayed[{g0,g0[-k_,k_]},0];
+xTagSetDelayed[{g0,g0[-i_,j_]g0[-j_,k_]},-delta[-i,k]];
 xUpSet[GammaMatrixQ[g0],True];
 xUpSet[MetricOfGammaMatrix[g0],met];
 (* No Perturbation since it's a fixed matrix *)
@@ -837,6 +843,7 @@ DefTensor[gammasym@@spininds,man,PrintAs->("\!\(\*SuperscriptBox[\(\[Gamma]\), \
 AppendTo[$GammaMatrices,gammasym];
 xUpSetDelayed[cd[__]@gammasym[__],0];
 xTagSetDelayed[{gammasym,gammasym[-k_,k_]},0];
+xTagSetDelayed[{gammasym,gammasym[-i_,j_]gammasym[-j_,k_]},$GammaStarSign^2delta[-i,k]];
 xUpSet[GammaMatrixQ[gammasym],True];
 xUpSet[MetricOfGammaMatrix[gammasym],met];
 (* No Perturbation since it's a fixed matrix *)
@@ -923,7 +930,7 @@ Protect[SpinBundleQ];
 
 
 (* ::Input::Initialization:: *)
-SplitGammaMatrix[f_,keepgammas_:False]:=Catch@Module[{len,dimm,metric,mfold,g1,ilist,silist},
+SplitGammaMatrix[f_,keepgammas:(_?BooleanQ):False]:=Catch@Module[{len,dimm,metric,mfold,g1,ilist,silist},
 If[!GammaMatrixQ[Head[f]],Throw@Message[SplitGammaMatrix::nogamma,Head[f]]];
 If[GammaZeroQ[Head[f]],Return@f];
 len=Length[f];
@@ -933,7 +940,7 @@ dimm=DimOfManifold[mfold];
 g1=GammaMatrix[metric,1];
 (* in even dimensions, \[Gamma]* *)
 Switch[len,
-2,If[!EvenQ[dimm],Throw@Message[SplitGammaMatrix::nogamma,Head[f]]];If[keepgammas===True,f,
+2,If[!GammaStarQ[Head[f]],Throw@Message[SplitGammaMatrix::nogamma,Head[f]]];If[keepgammas===True,f,
 ilist=DummiesIn[VBundleOfMetric[metric],dimm];
 silist=DummiesIn[Symbol["Spin"<>SymbolName[mfold]],dimm-1];
 silist=Join[{f[[1]]},Riffle[silist,-silist],{f[[2]]}];
@@ -952,7 +959,7 @@ Antisymmetrize[Times@@(g1@@@silist),ilist]
 SetNumberOfArguments[SplitGammaMatrix,{1,2}]
 Protect[SplitGammaMatrix];
 
-SplitGammaMatrices[f_,keepgammas_:False]:=f//.{x_?GammaMatrixQ[inds__]:>SplitGammaMatrix[x[inds],keepgammas]}
+SplitGammaMatrices[f_,keepgammas:(_?BooleanQ):False]:=f//.{x_?GammaMatrixQ[inds__]:>SplitGammaMatrix[x[inds],keepgammas]}
 SetNumberOfArguments[SplitGammaMatrices,{1,2}]
 Protect[SplitGammaMatrices];
 
@@ -981,23 +988,64 @@ gamtbl[[i,j,5]]/.Join[Thread@Rule[gamtbl[[i,j,1]],ainds],Thread@Rule[gamtbl[[i,j
 
 
 (* ::Input::Initialization:: *)
-JoinGammaMatrices[f_Plus]:=Map[JoinGammaMatrices,f]
-JoinGammaMatrices[f_]:=f//.{x_. ga_?GammaMatrixQ[indsa__,B_,A_]gb_?GammaMatrixQ[indsb__,-A_,C_]:>Expand[x PrecomputedGammaProduct[{indsa},{indsb},MetricOfGammaMatrix[ga],{B,C}]]}/.{ga_?GammaMatrixQ[inds__,-B_,A_]gb_?GammaStarQ[-A_,B_]:>ToCanonical@ContractMetric@JoinGammaMatrices[ga[inds,-B,A]SplitGammaMatrix[gb[-A,B]]]}/.{ga_?GammaMatrixQ[inds__,B_,A_]gb_?GammaStarQ[-A_,C_]:>(-1)^Length@List[inds]gb[B,A]ga[inds,-A,C],ga_?GammaMatrixQ[B_,A_]gb_?GammaMatrixQ[-A_,C_]:>Which[
-GammaStarQ[ga]&&GammaStarQ[gb],$GammaStarSign^2delta[B,C],
-GammaStarQ[ga]&&GammaZeroQ[gb],-gb[B,A]ga[-A,C],
-GammaZeroQ[ga]&&GammaZeroQ[gb],-delta[B,C],
-True,ga[B,A]gb[-A,C]
-]}
-SetNumberOfArguments[JoinGammaMatrices,1];
+JoinGammaGammaStar[gam_[inds__,A_,B_],gams_[-B_,C_]]:=Module[{met,bundle,dimm,ilist,gammax},
+met=MetricOfGammaMatrix[gam];
+bundle=VBundleOfMetric[met];
+dimm=DimOfVBundle[bundle];
+gammax=GiveSymbol[Gamma,met,dimm];
+ilist=DummiesIn[bundle,dimm];
+$GammaStarSign (-I)^(dimm/2+3)/dimm!ToCanonical@ContractMetric[epsilon[met]@@(-ilist)PrecomputedGammaProduct[{inds},ilist,met,{A,C}]]
+]
+
+
+(* ::Input::Initialization:: *)
+JoinGammaMatrices[f_Plus,keep_?BooleanQ]:=Map[JoinGammaMatrices[#,keep]&,f]
+JoinGammaMatrices[f_,keep:(_?BooleanQ):False]:=With[{f2=f//.{x_. ga_?GammaMatrixQ[indsa__,B_,A_]gb_?GammaMatrixQ[indsb__,-A_,C_]:>Expand[x PrecomputedGammaProduct[{indsa},{indsb},MetricOfGammaMatrix[ga],{B,C}]]}//.{ga_?GammaStarQ[A_,B_]gb_?GammaMatrixQ[inds__,-B_,C_]gc_?GammaStarQ[-C_,D_]:>(-1)^Length@List[inds]$GammaStarSign^2gb[inds,A,D],ga_?GammaStarQ[A_,B_]gb_?GammaZeroQ[-B_,C_]gc_?GammaStarQ[-C_,D_]:>-$GammaStarSign^2gb[A,D],ga_?GammaZeroQ[A_,B_]gb_?GammaStarQ[-B_,C_]gc_?GammaZeroQ[-C_,D_]:>gb[A,D]}},
+If[keep,f2,f2/.{ga_?GammaMatrixQ[inds__,A_,B_]gb_?GammaStarQ[-B_,C_]:>JoinGammaGammaStar[ga[inds,A,B],gb[-B,C]],ga_?GammaStarQ[A_,B_]gb_?GammaMatrixQ[inds__,-B_,C_]:>(-1)^Length@List[inds]JoinGammaGammaStar[gb[inds,A,B],ga[-B,C]]}]]
+SetNumberOfArguments[JoinGammaMatrices,{1,2}];
 Protect[JoinGammaMatrices];
 
 
 (* ::Input::Initialization:: *)
-EpsGammaRep[dim_,met_,tm_,eps_[epsinds__],gam_[ginds__,A_,B_]]:=With[{i=Length[{ginds}]},Module[{dinds=DummiesIn[tm,i],prodmet,pm,epswithin,ei},
-prodmet=Times@@(met@@@Transpose[{{ginds},{epsinds}[[1;;i]]}]);
+DualGammaMatrix[gam_?GammaMatrixQ[inds___,A_,B_]]:=Catch@Module[{met,bdl,sbdl,dim,gamdim,dualgam,gamstar},
+If[GammaZeroQ[gam],Throw@Message[DualGammaMatrix::wronggamma]];
+met=MetricOfGammaMatrix@gam;
+bdl=VBundleOfMetric@met;
+sbdl=SlotsOfTensor[gam][[-1]];
+dim=DimOfVBundle@bdl;
+gamdim=Length[SlotsOfTensor[gam]]-2;
+dualgam=If[dim-gamdim>0,GiveSymbol[Gamma,met,dim-gamdim],delta];
+gamstar=If[EvenQ[dim]&&gamdim>0,GiveSymbol[Gamma,met,Star],delta];
+If[EvenQ[dim],
+(-I)^(dim/2+3)/(dim-gamdim)!(-1)^(gamdim (gamdim-1)/2)If[gamdim>0,1/$GammaStarSign ,$GammaStarSign]With[{dinds=DummiesIn[bdl,dim-gamdim],C=DummyIn@sbdl},epsilon[met]@@Join[{inds},dinds]dualgam@@Join[-dinds,{A,C}]gamstar[-C,B]],
+$GammaStarSign (I)^(dim/2+3)/(dim-gamdim)!(-1)^((dim-gamdim)(dim-gamdim-1)/2)With[{dinds=DummiesIn[bdl,dim-gamdim]},epsilon[met]@@Join[{inds},dinds]dualgam@@Join[-dinds,{A,B}]]]]
+SetNumberOfArguments[DualGammaMatrix,1];
+Protect[DualGammaMatrix];
+
+
+(* ::Input::Initialization:: *)
+GammaMatricesToDual[expr_]:=Module[{gammas,gam,i,reps},
+gammas=Complement[$GammaMatrices,Join[Select[$GammaMatrices,GammaStarQ],Select[$GammaMatrices,GammaZeroQ]]];
+gammas=ReleaseHold@Map[If[2Length[SlotsOfTensor[#]]-4>DimOfVBundle[VBundleOfMetric[MetricOfGammaMatrix[#]]],#,Hold@Sequence[]]&,gammas];
+reps=Table[inject[{gam->gammas[[i]]},gam[inds__]:>DualGammaMatrix[gam[inds]]],{i,1,Length@gammas}];
+expr/.reps
+]
+GammaMatricesToDual[expr_,All]:=Module[{gammas,gam,i,reps},
+gammas=Complement[$GammaMatrices,Join[Select[$GammaMatrices,GammaStarQ],Select[$GammaMatrices,GammaZeroQ]]];
+reps=Table[inject[{gam->gammas[[i]]},gam[inds__]:>DualGammaMatrix[gam[inds]]],{i,1,Length@gammas}];
+expr/.reps]
+GammaMatricesToDual[expr_,gam_?GammaMatrixQ]:=Catch@If[GammaZeroQ[gam],Throw@Message[DualGammaMatrix::wronggamma],expr/.{gam[inds__]:>DualGammaMatrix[gam[inds]]}]
+SetNumberOfArguments[GammaMatricesToDual,{1,2}];
+Protect[GammaMatricesToDual];
+
+
+(* ::Input::Initialization:: *)
+EpsGammaRep[dim_,met_,tm_,eps_[epsinds__],gam_[ginds__,A_,B_]]:=With[{i=Length[{ginds}]},Module[{dinds=DummiesIn[tm,i],grepinds=DummiesIn[tm,i],prodmet,epswithin,res},
+prodmet=Times@@(met@@@Transpose[{grepinds,{epsinds}[[1;;i]]}]);
 epswithin=eps@@Join[{epsinds}[[i+1;;-1]],-dinds];
-ToCanonical@ReleaseHold[(-1)^(i(dim+1))dim!/(i!(dim-i)!)inject[{pm->prodmet,ei->epswithin},Antisymmetrize[Hold[pm ei],{epsinds}]]]gam@@Join[dinds,{A,B}]
-]];
+res=ToCanonical[(-1)^(i(dim+1))dim!/(i!(dim-i)!)Antisymmetrize[prodmet epswithin,{epsinds}]]gam@@Join[dinds,{A,B}];
+ToCanonical[res/.Rule@@@Transpose[{grepinds,{ginds}}]]
+]]
 EpsilonGammaReduce[expr_,met_]:=Catch@Module[{i,eps,gam,gams,tm,dim,reps},
 tm=VBundleOfMetric[met];
 dim=DimOfVBundle[tm];
@@ -2161,7 +2209,7 @@ head/:head[Verbatim[CenterDot][x_, y___]]:=CenterDot[head[x],y]+(-1)^Parity[x]Ce
 (* scalars *)head/:head[f_?ScalarFunctionQ[args___]]:=xAct`xTensor`Private`multiD[head,f[args]];
 head/:head[Scalar[expr_]]:=head[NoScalar@Scalar[expr]];
 (* lists *)head/:head[list_List]:=Map[head,list];
-(* commutes with derivatives *)head/:head[der_?CovDQ[i___][expr_]]:=der[i][head[expr]];
+(* commutes with partial derivatives *)head/:head[PD[i___][expr_]]:=PD[i][head[expr]];
 (* and invariant tensors*)head/:head[t_?InvariantTraceTensorQ[i__]]:=0;
 (* odd differential *)xTagSetDelayed[{head,Grade[head[expr_],CenterDot]},1+Grade[head,CenterDot]];
 (*Register*)MakexTensions[DefOddDifferential,"End",gh,options];
@@ -2177,19 +2225,7 @@ Block[{$DefInfoQ=False},DefOddDifferential[BRST];];
 
 (* ::Input::Initialization:: *)
 ClearAll[BRST0];
-BRST0[expr_Plus]:=Map[BRST0,expr];
-BRST0[x_ y___]:=CenterDot[BRST0[x],y]+(-1)^Parity[x]CenterDot[x,BRST0[Times[y]]];
-BRST0[Verbatim[CenterDot][x_, y___]]:=CenterDot[BRST0[x],y]+(-1)^Parity[x]CenterDot[x, BRST0[CenterDot[y]]];
-BRST0[_?ConstantQ]:=0;
-BRST0[f_?ScalarFunctionQ[args___]]:=xAct`xTensor`Private`multiD[BRST0,f[args]];
-BRST0[Scalar[expr_]]:=BRST0[NoScalar@Scalar[expr]];
-BRST0[list_List]:=Map[BRST0,list];
-BRST0[der_?CovDQ[i___][expr_]]:=der[i][BRST0[expr]];
-BRST0[t_?InvariantTraceTensorQ[i__]]:=0;
-InertHeadQ[BRST0]^=True;
-xTagSetDelayed[{BRST0,Grade[BRST0[expr_],CenterDot]},1+Grade[expr,CenterDot]];
-SetNumberOfArguments[BRST0,1];
-Protect[BRST0];
+Block[{$DefInfoQ=False},DefOddDifferential[BRST0];];
 
 
 (* ::Input::Initialization:: *)
