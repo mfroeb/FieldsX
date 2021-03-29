@@ -21,7 +21,7 @@
 
 (* ::Input::Initialization:: *)
 xAct`FieldsX`$xTensorVersionExpected={"1.1.4",{2020,2,16}};
-xAct`FieldsX`$Version={"1.0.3",{2021,02,14}};
+xAct`FieldsX`$Version={"1.1",{2021,03,29}};
 
 
 (* ::Input::Initialization:: *)
@@ -48,7 +48,7 @@ You should have received a copy of the GNU General Public License along with thi
   
 (* :Context: xAct`FieldsX` *)
 
-(* :Package Version: 1.0.3 *)
+(* :Package Version: 1.1 *)
 
 (* :Copyright: Markus B. Fr\[ODoubleDot]b (2019-2021) *)
 
@@ -57,6 +57,8 @@ You should have received a copy of the GNU General Public License along with thi
              1.0.2 Fixed warning messages
              1.0.3 BRST operator only commutes with PD (not general CovD), optimized JoinGammaMatrices and \[Gamma]* handling,
                    fixed EpsilonGammaReduce for partially contracted \[Gamma] matrices, added dual \[Gamma] matrices
+             1.1   Added frame fields and spin connections and the corresponding utility functions and perturbations,
+                   fixed UndefSpinStructure to also remove perturbations of \[Gamma] matrices
  *)
 
 (* :Keywords: TODO *)
@@ -238,6 +240,19 @@ $CenterDotTexSymbol::usage=usagerow[{"$CenterDotTexSymbol gives the symbol to us
 
 
 (* ::Input::Initialization:: *)
+FrameBundleQ::usage=usagerow[{"FrameBundleQ[",it@"expr","] gives True if ",it@"expr"," is a frame bundle, and False otherwise."}];
+DefFrameBundle::usage=usagerow[{"DefFrameBundle[",it@"frame","[-",it@"\[Mu]",", ",it@"a","], ",it@"eta","[-",it@"a",", -",it@"b","], {",it@"a",", ",it@"b",", ",it@"c",", ...}] defines a frame bundle ",it@"FrameM"," with abstract indices ",it@"a",", ",it@"b",", \[Ellipsis] on the base manifold ",it@"M"," of the tangent bundle represented by the abstract index ",it@"\[Mu]",". It also defines the flat frame bundle metric ",it@"eta","[-",it@"a",",-",it@"b","] and the frame field ",it@"frame","[-",it@"\[Mu]",", ",it@"a","] with inverse ",it@"frame","[",it@"\[Mu]",", -",it@"a","]."}];
+UndefFrameBundle::usage=usagerow[{"UndefFrameBundle[",it@"frame","] undefines the frame bundle whose frame field is ",it@"frame","."}];
+FrameFieldOfBundle::usage=usagerow[{"FrameFieldOfBundle[",it@"tb",", ",it@"fb","] returns the frame field connecting the tangent bundle ",it@"tb"," and the frame bundle",it@"fb","."}];
+$SpinConnections::usage=usagerow[{"$SpinConnections is a global variable storing the list of all currently defined spin connections."}];
+CovDOfSpinConnection::usage=usagerow[{"CovDOfSpinConnection[",it@"\[Omega]","] returns the covariant derivative corresponding to the spin connection ",it@"\[Omega]","."}];
+DefSpinConnection::usage=usagerow[{"DefSpinConnection[",it@"\[Omega]","[-",it@"\[Mu]",", -",it@"a",", -",it@"b","], ",it@"CD","] defines the spin connection ",it@"\[Omega]","[-",it@"\[Mu]",", -",it@"a",", -",it@"b","] of the covariant derivative ",it@"CD"," and the associated curvature and torsion tensors."}];
+UndefSpinConnection::usage=usagerow[{"UndefSpinConnection[",it@"\[Omega]","] undefines the spin connection ",it@"\[Omega]","."}];
+SpinConnectionToFrame::usage=usagerow[{"SpinConnectionToFrame[",it@"expr",", ",it@"\[Omega]","] expands all occurrences of the spin connection ",it@"\[Omega]"," inside ",it@"expr"," in terms of derivatives of the frame field and the torsion. It also expands perturbations of the spin connection in terms of covariant derivatives of the perturbation of the frame field and the torsion. The second argument can be a list of spin connections."}];
+ContortionToTorsion::usage=usagerows[{"ContortionToTorsion[",it@"expr",", ",it@"CD","] expresses the contortion tensor ",it@"ContortionCD"," of the covariant derivative ",it@"CD"," occurring inside ",it@"expr"," by the torsion tensor ",it@"TorsionCD","."},{"ContortionToTorsion[",it@"expr",", ",it@"\[Omega]","] expresses the contortion tensor ",it@"Contortion\[Omega]"," of the spin connection ",it@"\[Omega]"," occurring inside ",it@"expr"," by the torsion tensor ",it@"Torsion\[Omega]","."},{"In both cases, the second argument can be a list of covariant derivatives or spin connections."}];
+
+
+(* ::Input::Initialization:: *)
 GammaMatrixQ::usage=usagerow[{"GammaMatrixQ[",it@"expr","] gives True if ",it@"expr"," is a \[Gamma] matrix, and False otherwise."}];
 GammaStarQ::usage=usagerow[{"GammaStarQ[",it@"expr","] gives True if ",it@"expr"," is the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix, and False otherwise."}];
 GammaZeroQ::usage=usagerow[{"GammaZeroQ[",it@"expr","] gives True if ",it@"expr"," is the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix, and False otherwise."}];
@@ -245,23 +260,25 @@ $GammaStarSign::usage=usagerow[{"$GammaStarSign defines the global sign of the \
 GammaMatrix::usage=usagerows[{"GammaMatrix[",it@"metric",", ",it@"n","] returns the generalized (totally antisymmetric) \[Gamma] matrix of order ",it@"n"," of the Clifford algebra associated to the metric ",it@"metric","."},{"GammaMatrix[",it@"metric",", Star] returns the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix of the Clifford algebra associated to the metric ",it@"metric","."},{"GammaMatrix[",it@"metric",", Zero] returns the \!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\) matrix of the Clifford algebra associated to the metric ",it@"metric","."}];
 MetricOfGammaMatrix::usage=usagerow[{"MetricOfGammaMatrix[",it@"\[Gamma]","] returns the metric associated to the Clifford algebra of ",it@"\[Gamma]","."}];
 $GammaMatrices::usage=usagerow[{"$GammaMatrices is a global variable storing the list of all currently defined \[Gamma] matrices."}];
+$PrecomputeGammaMatrixProducts::usage=usagerow[{"$PrecomputeGammaMatrixProducts controls whether products of generalised \[Gamma] matrices are precomputed when a spin structure is defined, to speed up later computations. By default, it is True."}];
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,
 (* FieldsX functions are renamed *)
 (* Roundabout construction to avoid introducing the symbols if we don't need them (leaky evaluation of If) *)
-MessageName[Evaluate@Symbol["DefGenSpinStructure"],"usage"]=usagerow[{"DefGenSpinStructure[",it@"metric",", {",it@"a",", ",it@"b",", \[Ellipsis]}] defines a spin structure on the base manifold ",it@"M"," of the metric ",it@"metric",". This includes the \[Gamma] matrices of the Clifford algebra associated to ",it@"metric"," and a spin bundle ",it@"SpinM"," with abstract indices ",it@"a",", ",it@"b",", \[Ellipsis], whose covariant derivative is induced from the one of ",it@"metric",", with the same name."}];
+MessageName[Evaluate@Symbol["DefGenSpinStructure"],"usage"]=usagerow[{"DefGenSpinStructure[",it@"metric",", {",it@"A",", ",it@"B",", \[Ellipsis]}] defines a spin structure on the base manifold ",it@"M"," of the metric ",it@"metric",". This includes the \[Gamma] matrices of the Clifford algebra associated to ",it@"metric"," and a spin bundle ",it@"SpinM"," with abstract indices ",it@"A",", ",it@"B",", \[Ellipsis], whose covariant derivative is induced from the one of ",it@"metric",", with the same name."}];
 MessageName[Evaluate@Symbol["UndefGenSpinStructure"],"usage"]=usagerow[{"UndefGenSpinStructure[",it@"metric","] undefines the spin structure on the base manifold of the metric ",it@"metric","."}];
 ,
 (* We have the nice names *)
 MessageName[Evaluate@Symbol["DefSpinStructure"],"usage"]=
-usagerow[{"DefSpinStructure[",it@"metric",", {",it@"a",", ",it@"b",", \[Ellipsis]}] defines a spin structure on the base manifold ",it@"M"," of the metric ",it@"metric",". This includes the \[Gamma] matrices of the Clifford algebra associated to ",it@"metric"," and a spin bundle ",it@"SpinM"," with abstract indices ",it@"a",", ",it@"b",", \[Ellipsis], whose covariant derivative is induced from the one of ",it@"metric",", with the same name."}];
+usagerow[{"DefSpinStructure[",it@"metric",", {",it@"A",", ",it@"B",", \[Ellipsis]}] defines a spin structure on the base manifold ",it@"M"," of the metric ",it@"metric",". This includes the \[Gamma] matrices of the Clifford algebra associated to ",it@"metric"," and a spin bundle ",it@"SpinM"," with abstract indices ",it@"A",", ",it@"B",", \[Ellipsis], whose covariant derivative is induced from the one of ",it@"metric",", with the same name."}];
 MessageName[Evaluate@Symbol["UndefSpinStructure"],"usage"]=usagerow[{"UndefSpinStructure[",it@"metric","] undefines the spin structure on the base manifold of the metric ",it@"metric","."}];
 ];
 SpinBundleQ::usage=usagerow[{"SpinBundleQ[",it@"bundle","] gives True if ",it@"bundle"," is a spin bundle, and False otherwise."}];
 SplitGammaMatrix::usage=usagerow[{"SplitGammaMatrix[",it@"\[Gamma]",", ",it@"keep","] decomposes the generalized \[Gamma] matrix ",it@"\[Gamma]", " into an antisymmetrized product of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
 SplitGammaMatrices::usage=usagerow[{"SplitGammaMatrices[",it@"\[Gamma]",", ",it@"keep","] decomposes all the generalized \[Gamma] matrices appearing within ",it@"expr", " into antisymmetrized products of individual \[Gamma] matrices. If ",it@"keep","=True, the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix is kept."}];
-JoinGammaMatrices::usage=usagerow[{"JoinGammaMatrices[",it@"expr",", ",it@"keep","] replaces products of \[Gamma] matrices within ",it@"expr"," by generalized \[Gamma] matrices. If ",it@"keep","=True, products of the \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix and other generalized \[Gamma] matrices are kept."}];
+JoinGammaMatrices::usage=usagerow[{"JoinGammaMatrices[",it@"expr",", ",it@"keep","] replaces products of \[Gamma] matrices within ",it@"expr"," by generalized \[Gamma] matrices. If ",it@"keep","=True, products of a single \!\(\*SubscriptBox[\(\[Gamma]\), \(*\)]\) (chiral) matrix and other generalized \[Gamma] matrices are kept."}];
 DualGammaMatrix::usage=usagerow[{"DualGammaMatrix[",it@"\[Gamma]","[",it@"\[Mu]",", ..., -",it@"A",", ",it@"B","]] returns the dual matrix of the generalized \[Gamma] matrix ",it@"\[Gamma]","[",it@"\[Mu]",", ..., -",it@"A",", ",it@"B","]."}];
 GammaMatricesToDual::usage=usagerows[{"GammaMatricesToDual[",it@"expr","] replaces generalized \[Gamma] matrices with more than d/2 indices within ",it@"expr"," by their dual, where d is the dimension of the manifold."},{"GammaMatricesToDual[",it@"expr",", All] replaces all generalized \[Gamma] matrices within ",it@"expr"," by their dual."},{"GammaMatricesToDual[",it@"expr",", ",it@"\[Gamma]","] replaces only the matrix \[Gamma] within ",it@"expr"," by its dual."}];
+ChangeGammaMatrices::usage=usagerow[{"ChangeGammaMatrices[",it@"expr",", ",it@"met1",", ",it@"met2","] converts all generalized \[Gamma] matrices within ",it@"expr"," depending on the metric ",it@"met1"," to the corresponding ones depending on the metric ",it@"met2",". One of the metrics must be the metric of a tangent bundle, and the other one of the associated frame bundle."}];
 EpsilonGammaReduce::usage=usagerow[{"EpsilonGammaReduce[",it@"expr",",",it@"metric","] replaces products of the totally antisymmetric \[Epsilon] tensor and generalized \[Gamma] matrices associated to the metric ",it@"metric"," within ",it@"expr"," by suitably contracted ones."}];
 EpsilonYoungProject::usage=usagerow[{"EpsilonYoungProject[",it@"expr",",",it@"metric","] projects products of the totally antisymmetric \[Epsilon] tensor associated to the metric ",it@"metric"," and other tensors within ",it@"expr"," onto the corresponding Young tableaux."}];
 
@@ -532,7 +549,7 @@ metric[a_Symbol,-b_Symbol]:=delta[a,-b];
 metric[-a_Symbol,b_Symbol]:=delta[-a,b];
 (* We also need a covariant derivative to make xAct happy. *)
 CovDOfMetric[metric]^=tangentcovd;
-metric/:tangentcovd[k___][metric[i_,j_]]:=0;
+metric/:tangentcovd[k__][metric[i_,j_]]:=0;
 ];
 SetNumberOfArguments[DefVBundleWithMetric,{5,Infinity}];
 Protect[DefVBundleWithMetric];
@@ -678,6 +695,7 @@ DefInfo->Null
 ];
 CenterDot/:GradeOfProduct[Times,CenterDot]=0;
 CenterDot/:der_?CovDQ[i___][Verbatim[CenterDot][l_,r___]]:=If[FirstDerQ[der[i]],CenterDot[der[i][l],r]+CenterDot[l,der[i][CenterDot[r]]],SymmetrizeCovDs[With[{$AutoSymmetrizeCovDs=False},Symmetrize[Fold[der[#2][#1]&,CenterDot[l,r],{i}],{i}]]]];
+CenterDot/:Grade[sum_Plus,CenterDot]:= With[{glist=Union[Mod[Grade[#,CenterDot],2]&/@List@@sum]},If[xAct`xTensor`Private`checkLengthOneGrade[glist],First[glist]]];
 Protect[CenterDot];
 
 Unprotect[Dagger];
@@ -686,7 +704,7 @@ Protect[Dagger];
 
 
 (* ::Input::Initialization:: *)
-Parity[expr_]:=Grade[expr,CenterDot];
+Parity[expr_]:=Mod[Grade[expr,CenterDot],2];
 Protect[Parity];
 
 
@@ -711,7 +729,300 @@ Protect[DefEvenTensor,DefOddTensor];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.5 Spin structure, \[Gamma] matrices ******************************)
+(****************************** 2.5 Frame bundles and spin connections ******************************)
+
+
+(* ::Input::Initialization:: *)
+FrameBundleQ[bundle_?VBundleQ]:=(bundle===Symbol["Frame"<>SymbolName@BaseOfVBundle[bundle]])
+FrameBundleQ[_]:=False;
+SetNumberOfArguments[FrameBundleQ,1];
+Protect[FrameBundleQ];
+
+
+(* ::Input::Initialization:: *)
+Options[DefFrameBundle]={PrintAs->{},ProtectNewSymbol:>$ProtectNewSymbols};
+DefFrameBundle[frame_Symbol[-mu_,aa_],eta_Symbol[-a_,-b_],inds_List,OptionsPattern[]]:=Catch@Module[{tbundle,man,met,cd,fbundle,detframe,epsframe,epsinds,pa,nu,rho,c,d,i,j,k,tsym,fsym,ccsym,dsym},
+(* check that mu belongs to a valid tangent bundle with metric and that no spin bundle has been defined *)
+If[!AbstractIndexQ[mu],Throw@Message[DefFrameBundle::unknown,"abstract index",mu]];
+If[!MemberQ[inds,aa],Throw@Message[DefFrameBundle::elmntavl,"index",aa,"indices",inds]];
+If[!MemberQ[inds,a],Throw@Message[DefFrameBundle::elmntavl,"index",a,"indices",inds]];
+If[!MemberQ[inds,b],Throw@Message[DefFrameBundle::elmntavl,"index",b,"indices",inds]];
+tbundle=VBundleOfIndex[mu];
+man=BaseOfVBundle[tbundle];
+If[Tangent[man]=!=tbundle,Throw@Message[DefFrameBundle::notan,mu]];
+If[!MetricEndowedQ[tbundle],Throw@Message[DefFrameBundle::nomet,tbundle]];
+If[SpinBundleQ[Symbol["Spin"<>SymbolName[man]]],Throw@Message[DefFrameBundle::error,"Cannot define frame bundle if a spin structure is already defined."]];
+(* validate symbols *)
+ValidateSymbol[frame];
+ValidateSymbolInSession[frame];
+detframe=Symbol["Det"<>SymbolName[frame]];
+ValidateSymbol@Evaluate[detframe];
+ValidateSymbolInSession@Evaluate[detframe];
+ValidateSymbol[eta];
+ValidateSymbolInSession[eta];
+met=First@MetricsOfVBundle[tbundle];
+cd=CovDOfMetric[met];
+If[xAct`xTensor`Private`FrozenMetricQ[met],Throw@Message[DefFrameBundle::error,"A tangent bundle with frozen metric cannot be used."]];
+pa=OptionValue[PrintAs];
+If[Head[pa]=!=List,Throw@Message[DefFrameBundle::error,"PrintAs option must be a list with two elements."]];
+If[(Length[pa]=!=0)&&(Length[pa]=!=2),Throw@Message[DefFrameBundle::error,"PrintAs option must be a list with two elements."]];
+(* define the frame bundle and frame field *)
+fbundle=Symbol["Frame"<>SymbolName[man]];
+DefVBundleWithMetric[fbundle,man,DimOfVBundle[tbundle],inds,eta,PrintAs->("\[DoubleStruckCapitalF]"<>SymbolName[man])];
+xUpSet[SignDetOfMetric[eta],SignDetOfMetric[met]];
+DefTensor[frame[-mu,a],man,Master->eta,ProtectNewSymbol->False,DefInfo:>If[$DefInfoQ===False,False,{"frame field",""}],PrintAs->If[Length[pa]>0,pa[[1]],Identity]];
+DefTensor[detframe[],man,Master->frame,ProtectNewSymbol->False,WeightOfTensor->AIndex,DefInfo:>If[$DefInfoQ===False,False,{"weight +1 density","Determinant."}],PrintAs->If[Length[pa]>0,pa[[1]],Identity]];
+If[Length[pa]>0,
+inject[{fsym->eta},PrintAs[fsym]^=pa[[2]]];
+];
+xTagSet[{fbundle,FrameFieldOfBundle[tbundle,fbundle]},frame];
+(* soldering relations *)
+xTagSetDelayed[{frame,frame[nu_,c_]frame[rho_,-c_]},met[nu,rho]];
+xTagSetDelayed[{frame,frame[nu_,c_]frame[-nu_,d_]},eta[c,d]];
+(* epsilon tensor *)
+eta/:epsilonOrientation[eta,AIndex]:=$epsilonSign;
+epsframe=GiveSymbol[epsilon,eta];
+epsinds=GetIndicesOfVBundle[fbundle,If[IntegerQ[DimOfVBundle[fbundle]],DimOfVBundle[fbundle],2]];
+DefTensor[epsframe@@epsinds,man,Antisymmetric[Range@Length@epsinds],PrintAs:>GiveOutputString[epsilon,eta],ProtectNewSymbol->False,Master->eta,TensorID->{epsilon,eta}];
+If[!IntegerQ[DimOfVBundle[fbundle]],
+Evaluate[epsframe]/:SymmetryGroupOfTensor[epsframe[i__]]:=Antisymmetric[Range@Length@i];
+Evaluate[epsframe]/:SymmetryGroupOfTensor[epsframe]=.;
+Evaluate[epsframe]/:SymmetryGroupOfTensor[epsframe]:=Antisymmetric[Range@DimOfVBundle@fbundle];
+];
+Evaluate[epsframe]/:epsframe[inds1__]epsframe[inds2__]:=SignDetOfMetric[eta]ExpandGdelta[Gdelta[inds1,inds2]];
+(* covariantly constant *)
+Evaluate[frame]/:TensorDerivative[frame,cd,i___]:=Zero;
+Evaluate[detframe]/:TensorDerivative[detframe,cd,i___]:=Zero;
+Evaluate[eta]/:TensorDerivative[eta,cd,i___]:=Zero;
+Evaluate[epsframe]/:TensorDerivative[epsframe,cd,i___]:=Zero;
+xTagSetDelayed[{frame,cd[i__]@frame[j__]},0];
+xTagSetDelayed[{detframe,cd[i__]@detframe[]},0];
+xTagSetDelayed[{epsframe,cd[i__]@epsframe[j__]},0];
+(* general first derivatives *)
+inject[{tsym->tbundle,fsym->fbundle,ccsym->frame},xTagSetDelayed[{ccsym,(d_?FirstDerQ)@ccsym[nu_?UpIndexQ,c_]},With[{r=DummyIn[tsym],e=DummyIn[fsym]},-ccsym[nu,-e]ccsym[r,c]d[ccsym[-r,e]]]]];
+inject[{tsym->tbundle,fsym->fbundle,ccsym->frame,dsym->detframe},xTagSetDelayed[{dsym,(d_?FirstDerQ)@dsym[]},With[{r=DummyIn[tsym],e=DummyIn[fsym]},dsym[]ccsym[r,-e]d[ccsym[-r,e]]]]];
+(* Perturbation depends on the index structure *)
+inject[{tsym->tbundle,fsym->fbundle,ccsym->frame},xAct`xPert`Private`ExpandPerturbation1[Perturbation[ccsym[nu_?UpIndexQ,c_],Optional[order_Integer,1]],options___]:=If[order==0,ccsym[nu,c],ExpandPerturbation[Perturbation[With[{r=DummyIn[tsym],e=DummyIn[fsym]},-ccsym[nu,-e]ccsym[r,c]Perturbation[ccsym[-r,e],1]],order-1],options]]];
+inject[{tsym->eta,fsym->fbundle,ccsym->frame},xAct`xPert`Private`ExpandPerturbation1[Perturbation[ccsym[nu_,c_?DownIndexQ],Optional[order_Integer,1]],options___]:=If[order==0,ccsym[nu,c],ExpandPerturbation[Perturbation[With[{e=DummyIn[fsym]},tsym[c,-e]Perturbation[ccsym[nu,e],1]],order-1],options]]];
+inject[{tsym->tbundle,fsym->fbundle,ccsym->frame,dsym->detframe},xAct`xPert`Private`ExpandPerturbation1[Perturbation[dsym[],Optional[order_Integer,1]],options___]:=If[order==0,dsym[],ExpandPerturbation[Perturbation[With[{r=DummyIn[tsym],e=DummyIn[fsym]},dsym[]ccsym[r,-e]Perturbation[ccsym[-r,e],1]],order-1],options]]];
+Evaluate[eta]/:Perturbation[eta[c_,d_],Optional[order_Integer,1]]:=If[order==0,eta[c,d],0];
+Evaluate[epsframe]/:Perturbation[epsframe[inds1__],Optional[order_Integer,1]]:=If[order==0,epsframe[inds1],0];
+(* protect symbols *)
+If[TrueQ@OptionValue[ProtectNewSymbol],Protect[frame,detframe,eta,epsframe];];
+];
+SetNumberOfArguments[DefFrameBundle,{3,Infinity}];
+Protect[DefFrameBundle];
+
+
+(* ::Input::Initialization:: *)
+UndefFrameBundle[frame_Symbol]:=Catch@Module[{fbundle,sbundle,cd},
+If[Length@SlotsOfTensor[frame]=!=2,Throw@Message[UndefFrameBundle::unknown,"frame field",frame]];
+fbundle=SlotsOfTensor[frame][[2]];
+If[!FrameBundleQ[fbundle],Throw@Message[UndefFrameBundle::unknown,"frame bundle",fbundle]];
+(* check that the corresponding spin bundle is undefined, if it exists *)
+sbundle=Symbol["Spin"<>SymbolName[BaseOfVBundle[fbundle]]];
+If[SpinBundleQ[sbundle],Throw@Message[UndefFrameBundle::error,"Spin bundle "<>ToString@sbundle<>" must be undefined first."]];
+(* check that spin connections are undefined *)
+If[MemberQ[Map[-Last@SlotsOfTensor[#]&,$SpinConnections],fbundle],Throw@Message[UndefFrameBundle::error,"Spin connection "<>ToString@FirstCase[Map[{#,-Last@SlotsOfTensor[#]}&,$SpinConnections],{cd_,fbundle}->cd]<>" must be undefined first."]];
+cd=CovDOfMetric@First@MetricsOfVBundle[fbundle];
+(* remove associated symbols from covariant derivative *)
+VBundlesOfCovD[cd]^=DeleteCases[VBundlesOfCovD[cd],fbundle];
+(* undefine objects *)
+UndefVBundle[fbundle];
+];
+
+
+(* ::Input::Initialization:: *)
+FrameFieldOfBundle[tb_?VBundleQ,fb_?VBundleQ]:=Catch@Module[{},
+If[Tangent[BaseOfVBundle[tb]]=!=tb,Throw@Message[FrameFieldOfBundle::invalid,tb,"tangent bundle"];];
+If[!FrameBundleQ[fb],Throw@Message[FrameFieldOfBundle::invalid,fb,"frame bundle"];];
+If[BaseOfVBundle[tb]=!=BaseOfVBundle[fb],Throw@Message[FrameFieldOfBundle::error,"Bundles "<>SymbolName[tb]<>" and "<>SymbolName[fb]<>" must have the same base manifold."]];
+Return[];
+];
+FrameFieldOfBundle[_,_]:=Null;
+SetNumberOfArguments[FrameFieldOfBundle,2];
+Protect[FrameFieldOfBundle];
+
+
+(* ::Input::Initialization:: *)
+CovDOfSpinConnection[_]:=Null;
+SetNumberOfArguments[CovDOfSpinConnection,1];
+Protect[CovDOfSpinConnection];
+$SpinConnections={};
+
+
+(* ::Input::Initialization:: *)
+Options[DefSpinConnection]={PrintAs->Identity,CurvatureRelations->True,ProtectNewSymbol:>$ProtectNewSymbols};
+DefSpinConnection[conn_Symbol[-mu_,-a_,-b_],cd_?CovDQ,OptionsPattern[]]:=Catch@Module[{tbundle,fbundle,sbundle,frame,tors,contors,contorscd,riem,ric,ricscal,rpa,nu,rho,achris,fbsym,sbsym,gamsym,tq,tbsym,tsym,frsym},
+(* check that mu belongs to a valid tangent bundle with metric and a,b to the corresponding frame bundle *)
+If[!AbstractIndexQ[mu],Throw@Message[DefSpinConnection::unknown,"abstract index",mu]];
+If[!AbstractIndexQ[a],Throw@Message[DefSpinConnection::unknown,"abstract index",a]];
+If[!AbstractIndexQ[b],Throw@Message[DefSpinConnection::unknown,"abstract index",b]];
+tbundle=VBundleOfIndex[mu];
+fbundle=VBundleOfIndex[a];
+If[fbundle=!=VBundleOfIndex[b],Throw@Message[DefMetric::inds,a,b]];
+If[First@VBundlesOfCovD[cd]=!=tbundle,Throw@Message[DefSpinConnection::error,"Covariant derivative must be defined on the tangent bundle "<>ToString[tbundle]<>"."]];
+frame=FrameFieldOfBundle[tbundle,fbundle];
+riem=Symbol["Riemann"<>SymbolName[conn]];
+ric=Symbol["Ricci"<>SymbolName[conn]];
+ricscal=Symbol["RicciScalar"<>SymbolName[conn]];
+(* validate symbols *)
+Map[ValidateSymbol,{conn,riem,ric,ricscal}];
+Map[ValidateSymbolInSession,{conn,riem,ric,ricscal}];
+If[TorsionQ[cd],
+tors=Symbol["Torsion"<>SymbolName[conn]];
+contors=Symbol["Contortion"<>SymbolName[conn]];
+contorscd=Symbol["Contortion"<>SymbolName[cd]];
+Map[ValidateSymbol,{tors,contors,contorscd}];
+Map[ValidateSymbolInSession,{tors,contors,contorscd}];
+];
+(* define connection, curvature and possibly torsion *)
+nu=DummyIn@tbundle;
+rho=DummyIn@tbundle;
+rpa=If[OptionValue[PrintAs]===Identity,"R["<>SymbolName[conn]<>"]","R["<>OptionValue[PrintAs]<>"]"];
+DefTensor[conn[-mu,-a,-b],BaseOfVBundle@tbundle,Antisymmetric[{2,3}],PrintAs->OptionValue[PrintAs],ProtectNewSymbol->False,DefInfo:>If[$DefInfoQ===False,False,{"spin connection",""}]];
+Evaluate[conn]/:CovDOfSpinConnection[conn]=cd;
+Evaluate[conn]/:TorsionQ[conn]=TorsionQ[cd];
+AppendTo[$SpinConnections,conn];
+DefTensor[riem[-mu,-nu,-a,-b],BaseOfVBundle@tbundle,GenSet[-Cycles[{1,2}],-Cycles[{3,4}]],Master->conn,PrintAs->rpa,ProtectNewSymbol->False,DefInfo:>If[$DefInfoQ===False,False,{"Riemann curvature tensor",""}],TensorID->{Riemann,conn}];
+DefTensor[ric[-mu,-a],BaseOfVBundle@tbundle,Master->conn,PrintAs->rpa,ProtectNewSymbol->False,DefInfo:>If[$DefInfoQ===False,False,{"Ricci curvature tensor",""}],TensorID->{Ricci,conn}];
+DefTensor[ricscal[],BaseOfVBundle@tbundle,Master->conn,PrintAs->rpa,ProtectNewSymbol->False,DefInfo:>If[$DefInfoQ===False,False,{"Ricci curvature scalar",""}],TensorID->{RicciScalar,conn}];
+If[TorsionQ[cd],
+DefTensor[tors[-mu,-nu,a],BaseOfVBundle@tbundle,GenSet[-Cycles[{1,2}]],Master->conn,PrintAs->If[OptionValue[PrintAs]===Identity,"T["<>SymbolName[conn]<>"]","T["<>OptionValue[PrintAs]<>"]"],ProtectNewSymbol->False,DefInfo:>If[$DefInfoQ===False,False,{"Torsion tensor",""}],TensorID->{Torsion,conn}];
+DefTensor[contors[-mu,-nu,-rho],BaseOfVBundle@tbundle,GenSet[-Cycles[{2,3}]],Master->conn,PrintAs->If[OptionValue[PrintAs]===Identity,"K["<>SymbolName[conn]<>"]","K["<>OptionValue[PrintAs]<>"]"],ProtectNewSymbol->False,DefInfo:>If[$DefInfoQ===False,False,{"Contortion tensor",""}],TensorID->{Contortion,conn}];
+DefTensor[contorscd[-mu,-nu,-rho],BaseOfVBundle@tbundle,GenSet[-Cycles[{1,2}]],Master->cd,PrintAs->"K["<>SymbolOfCovD[cd][[2]]<>"]",ProtectNewSymbol->False,DefInfo:>If[$DefInfoQ===False,False,{"Contortion tensor",""}],TensorID->{Contortion,cd}];
+];
+(* christoffel of frame bundle and spin connection *)
+xTagSet[{cd,CurvatureQ[cd,fbundle]},True];
+VBundlesOfCovD[cd]^=DeleteDuplicates@Join[VBundlesOfCovD[cd],{fbundle}];
+If[!xTensorQ[GiveSymbol[AChristoffel,cd]],xAct`xTensor`Private`defcovdFiber[cd,tbundle,fbundle,CurvatureQ[cd],$DefInfoQ]];
+inject[{achris->Symbol["AChristoffel"<>SymbolName[cd]],fbsym->fbundle},achris[i_?UpIndexQ,j_?DownIndexQ,k_?DownIndexQ]/;(VBundleOfIndex[i]===fbsym):=conn[j,i,k]];
+inject[{achris->Symbol["FRiemann"<>SymbolName[cd]],fbsym->fbundle,gamsym->Symbol["Riemann"<>SymbolName[conn]]},achris[nu_,rho_,i_,j_]/;(VBundleOfIndex[i]===fbsym):=gamsym[nu,rho,i,j]];
+(* christoffel of spin connection *)
+sbundle=Symbol["Spin"<>SymbolName[BaseOfVBundle@tbundle]];
+If[SpinBundleQ[sbundle],
+inject[{achris->Symbol["AChristoffel"<>SymbolName[cd]],fbsym->fbundle,sbsym->sbundle,gamsym->GammaMatrix[First@MetricsOfVBundle[fbundle],2]},achris[i_?UpIndexQ,j_?DownIndexQ,k_?DownIndexQ]/;(VBundleOfIndex[i]===sbsym):=With[{aa=DummyIn@fbsym,bb=DummyIn@fbsym},-1/4conn[j,-aa,-bb]gamsym[aa,bb,k,i]]];
+];
+(* christoffel of levi-civita connection *)
+If[TorsionQ[cd],
+With[{chrissym=GiveSymbol[Christoffel,cd,LC@MetricOfCovD[cd]]},
+If[!xTensorQ[chrissym],xAct`xTensor`Private`defChristoffel[chrissym,{tbundle,tbundle},{Christoffel,cd,LC@MetricOfCovD[cd]}]];
+inject[{gamsym->contorscd},chrissym[i_,j_,k_]:=-$TorsionSign gamsym[i,j,k]];
+]
+];
+(* rules for contractions *)
+Evaluate[conn]/:CurvatureRelations[conn,Riemann]=MakeRule@Evaluate[{riem[-mu,-nu,-a,-b]frame[mu,a],$RicciSign ric[-nu,-b]},MetricOn->All];
+If[OptionValue[CurvatureRelations],
+If[$DefInfoQ,Print["** DefSpinConnection: Contractions of Riemann automatically replaced by Ricci."];];
+AutomaticRules[riem,CurvatureRelations[conn,Riemann],Verbose->False];
+];
+Evaluate[conn]/:CurvatureRelations[conn,Ricci]=MakeRule@Evaluate[{ric[-mu,-a]frame[mu,a],ricscal[]},MetricOn->All];
+If[OptionValue[CurvatureRelations],
+If[$DefInfoQ,Print["** DefSpinConnection: Contractions of Ricci automatically replaced by RicciScalar."];];
+AutomaticRules[ric,CurvatureRelations[conn,Ricci],Verbose->False];
+];
+Evaluate[conn]/:CurvatureRelations[conn]=Join[CurvatureRelations[conn,Riemann],CurvatureRelations[conn,Ricci]];
+(* TODO: Riemann Young projections *)
+(*inject[{gamsym\[Rule]conn},RiemannYoungProject[expr_,gamsym]:=expr/.RiemannYoungRule[gamsym]];*)
+(* rules for variation of curvature tensors *)
+inject[{achris->riem,sbsym->cd,gamsym->conn,tq->TorsionQ[cd],tsym->tors,tbsym->tbundle,fbsym->fbundle,frsym->frame},xAct`xPert`Private`ExpandPerturbation1[Perturbation[achris[nu_?DownIndexQ,rho_?DownIndexQ,c_?DownIndexQ,d_?DownIndexQ],Optional[order_Integer,1]],options___]:=If[order==0,achris[nu,rho,c,d],ExpandPerturbation[Perturbation[With[{tau=DummyIn[tbsym],f=DummyIn@fbundle},sbsym[nu]@Perturbation[gamsym[rho,c,d],1]-sbsym[rho]@Perturbation[gamsym[nu,c,d],1]+If[tq,tsym[nu,rho,f]frsym[tau,-f]Perturbation[gamsym[-tau,c,d],1],0]],order-1],options]]];
+inject[{achris->ric,tsym->riem,tbsym->tbundle,fbsym->fbundle,frsym->frame},xAct`xPert`Private`ExpandPerturbation1[Perturbation[achris[nu_?DownIndexQ,c_?DownIndexQ],Optional[order_Integer,1]],options___]:=If[order==0,achris[nu,c],ExpandPerturbation[Perturbation[With[{tau=DummyIn[tbsym],f=DummyIn@fbundle},Perturbation[tsym[nu,-tau,c,-f],1]frsym[tau,f]+tsym[nu,-tau,c,-f]Perturbation[frsym[tau,f],1]],order-1],options]]];
+inject[{achris->ricscal,tsym->ric,tbsym->tbundle,fbsym->fbundle,frsym->frame},xAct`xPert`Private`ExpandPerturbation1[Perturbation[achris[],Optional[order_Integer,1]],options___]:=If[order==0,achris[],ExpandPerturbation[Perturbation[With[{tau=DummyIn[tbsym],f=DummyIn@fbundle},Perturbation[tsym[-tau,-f],1]frsym[tau,f]+tsym[-tau,-f]Perturbation[frsym[tau,f],1]],order-1],options]]];
+(* convert curvature tensors *)
+tq={};
+inject[{achris->Riemann[cd],tsym->riem,fbsym->fbundle,frsym->frame},AppendTo[tq,achris[i1_,i2_,i3_,i4_]:>With[{aa=DummyIn@fbsym,bb=DummyIn@fbsym},tsym[i1,i2,aa,bb]frsym[i3,-aa]frsym[i4,-bb]]]];
+inject[{achris->Ricci[cd],tsym->ric,fbsym->fbundle,frsym->frame},AppendTo[tq,achris[i1_,i2_]:>With[{aa=DummyIn@fbsym},tsym[i1,aa]frsym[i2,-aa]]]];
+inject[{achris->RicciScalar[cd],tsym->ricscal},AppendTo[tq,achris[]:>tsym[]]];
+inject[{gamsym->conn,sbsym->cd,fbsym->tq},gamsym/:ChangeCurvature[expr_,sbsym,gamsym]:=expr/.fbsym];
+tq={};
+inject[{achris->Riemann[cd],tsym->riem,fbsym->tbundle,frsym->frame},AppendTo[tq,tsym[i1_,i2_,i3_,i4_]:>With[{aa=DummyIn@fbsym,bb=DummyIn@fbsym},achris[i1,i2,aa,bb]frsym[-aa,i3]frsym[-bb,i4]]]];
+inject[{achris->Ricci[cd],tsym->ric,fbsym->tbundle,frsym->frame},AppendTo[tq,tsym[i1_,i2_]:>With[{aa=DummyIn@fbsym},achris[i1,aa]frsym[-aa,i2]]]];
+inject[{achris->RicciScalar[cd],tsym->ricscal},AppendTo[tq,tsym[]:>achris[]]];
+inject[{gamsym->conn,sbsym->cd,fbsym->tq},gamsym/:ChangeCurvature[expr_,gamsym,sbsym]:=expr/.fbsym];
+(* convert torsion tensors *)
+If[TorsionQ[cd],
+(* christoffel symbols *)
+tq={};
+inject[{achris->Torsion[cd],tsym->tors,fbsym->fbundle,frsym->frame},AppendTo[tq,achris[i1_,i2_,i3_]:>With[{aa=DummyIn@fbsym},tsym[i2,i3,aa]frsym[i1,-aa]]]];
+inject[{achris->contorscd,tsym->contors},AppendTo[tq,achris[i1_,i2_,i3_]:>tsym[i3,i1,i2]]];
+inject[{gamsym->conn,sbsym->cd,fbsym->tq},gamsym/:ChangeTorsion[expr_,sbsym,gamsym]:=expr/.fbsym];
+tq={};
+inject[{achris->Torsion[cd],tsym->tors,fbsym->tbundle,frsym->frame},AppendTo[tq,tsym[i1_,i2_,i3_]:>With[{aa=DummyIn@fbsym},achris[aa,i1,i2]frsym[-aa,i3]]]];
+inject[{achris->contorscd,tsym->contors},AppendTo[tq,tsym[i1_,i2_,i3_]:>achris[i2,i3,i1]]];
+inject[{gamsym->conn,sbsym->cd,fbsym->tq},gamsym/:ChangeTorsion[expr_,gamsym,sbsym]:=expr/.fbsym];
+(* convert torsion *)
+tq={};
+inject[{achris->contors,tsym->tors,fbsym->fbundle,frsym->frame},AppendTo[tq,achris[i1_,i2_,i3_]:>With[{aa=DummyIn@fbsym},(tsym[i2,i3,aa]frsym[i1,-aa]-tsym[i1,i2,aa]frsym[i3,-aa]+tsym[i1,i3,aa]frsym[i2,-aa])/2]]];
+inject[{gamsym->conn,fbsym->tq},gamsym/:ContortionToTorsion[expr_,gamsym]:=expr/.fbsym];
+tq={};
+inject[{achris->contorscd,tsym->Torsion[cd]},AppendTo[tq,achris[i1_,i2_,i3_]:>-(tsym[i2,i3,i1]+tsym[i1,i2,i3]+tsym[i3,i2,i1])/2]];
+inject[{gamsym->cd,fbsym->tq},gamsym/:ContortionToTorsion[expr_,gamsym]:=expr/.fbsym];
+];
+(* protect symbols s*)
+If[OptionValue[ProtectNewSymbol],Protect[conn,riem,ric,ricscal]];
+If[OptionValue[ProtectNewSymbol]&&TorsionQ[cd],Protect[tors,contors,contorscd]];
+];
+SetNumberOfArguments[DefSpinConnection,{2,Infinity}];
+Protect[DefSpinConnection];
+
+
+(* ::Input::Initialization:: *)
+UndefSpinConnection[conn_Symbol]:=Catch@Module[{tbundle,fbundle,sbundle,cd,achris,fbsym,sbsym,gamsym},
+If[!MemberQ[$SpinConnections,conn],Throw@Message[UndefSpinConnection::unknown,"spin connection",conn]];
+tbundle=-First@SlotsOfTensor[conn];
+fbundle=-Last@SlotsOfTensor[conn];
+cd=CovDOfSpinConnection[conn];
+sbundle=Symbol["Spin"<>SymbolName[BaseOfVBundle@tbundle]];
+(* remove definitions for christoffel and curvature *)
+inject[{achris->Symbol["AChristoffel"<>SymbolName[cd]],fbsym->fbundle},achris[i_?UpIndexQ,j_?DownIndexQ,k_?DownIndexQ]/;(VBundleOfIndex[i]===fbsym)=.];
+inject[{achris->Symbol["FRiemann"<>SymbolName[cd]],fbsym->fbundle,gamsym->Symbol["Riemann"<>SymbolName[conn]]},achris[nu_,rho_,i_,j_]/;(VBundleOfIndex[i]===fbsym)=.];
+If[SpinBundleQ[sbundle],
+inject[{achris->Symbol["AChristoffel"<>SymbolName[cd]],fbsym->fbundle,sbsym->sbundle,gamsym->GammaMatrix[First@MetricsOfVBundle[fbundle],2]},achris[i_?UpIndexQ,j_?DownIndexQ,k_?DownIndexQ]/;(VBundleOfIndex[i]===sbsym)=.];
+];
+If[TorsionQ[cd],
+inject[{achris->GiveSymbol[Christoffel,cd,LC@MetricOfCovD[cd]]},achris[i_,j_,k_]=.];
+];
+(* remove perturbation rules *)
+inject[{achris->Symbol["Riemann"<>SymbolName[conn]]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[achris[nu_?DownIndexQ,rho_?DownIndexQ,c_?DownIndexQ,d_?DownIndexQ],Optional[order_Integer,1]],options___]=.];
+inject[{achris->Symbol["Ricci"<>SymbolName[conn]]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[achris[nu_?DownIndexQ,c_?DownIndexQ],Optional[order_Integer,1]],options___]=.];
+inject[{achris->Symbol["RicciScalar"<>SymbolName[conn]]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[achris[],Optional[order_Integer,1]],options___]=.];
+(* remove CD definitions *)
+Evaluate[cd]/:CurvatureQ[cd,fbundle]=.;
+VBundlesOfCovD[cd]^=DeleteCases[VBundlesOfCovD[cd],fbundle];
+(* finally undefine the connection, which also removes all associated curvature tensors *)
+$SpinConnections=DeleteCases[$SpinConnections,conn];
+UndefTensor[conn];
+]
+SetNumberOfArguments[UndefSpinConnection,1];
+Protect[UndefSpinConnection];
+
+
+(* ::Input::Initialization:: *)
+SpinConnectionToFrame[expr_,conns_List]:=Fold[SpinConnectionToFrame,expr,conns]
+SpinConnectionToFrame[expr_,conn_Symbol]:=Catch@Module[{cd,tbundle,fbundle,frame,met,tors,contors},
+cd=CovDOfSpinConnection[conn];
+If[cd===Null,Throw@Message[SpinConnectionToFrame::unknown,"spin connection",conn]];
+tbundle=Tangent[BaseOfVBundle@First@VBundlesOfCovD[cd]];
+fbundle=Symbol["Frame"<>SymbolName@BaseOfVBundle@First@VBundlesOfCovD[cd]];
+frame=FrameFieldOfBundle[tbundle,fbundle];
+met=First@MetricsOfVBundle@tbundle;
+tors=Symbol["Torsion"<>SymbolName[conn]];
+contors=Symbol["Contortion"<>SymbolName[conn]];
+With[{cds=cd,tbsym=tbundle,fbsym=fbundle,metsym=met,framesym=frame,tsym=tors,ctsym=contors,tb=TorsionQ[cd]},expr/.{conn[mu_,a_,b_]:>1/2With[{rho=DummyIn@tbsym,sigma=DummyIn@tbsym},framesym[rho,a](PD[mu]@framesym[-rho,b]-PD[-rho]@framesym[mu,b])-framesym[rho,b](PD[mu]@framesym[-rho,a]-PD[-rho]@framesym[mu,a])+metsym[-rho,mu](framesym[sigma,a]PD[-sigma]@framesym[rho,b]-framesym[sigma,b]PD[-sigma]@framesym[rho,a])+2If[tb,framesym[-rho,a]framesym[-sigma,b]contors[mu,rho,sigma],0]],Perturbation[conn[mu_,a_,b_],Optional[order_Integer,1]]:>Perturbation[1/2With[{rho=DummyIn@tbsym,sigma=DummyIn@tbsym,tau=DummyIn@tbsym,c=DummyIn@fbsym,d=DummyIn@fbsym},framesym[rho,a](cds[mu]@Perturbation@framesym[-rho,b]-cds[-rho]@Perturbation@framesym[mu,b])-framesym[rho,b](cds[mu]@Perturbation@framesym[-rho,a]-cds[-rho]@Perturbation@framesym[mu,a])+metsym[-rho,mu](framesym[sigma,a]cds[-sigma]@Perturbation@framesym[rho,b]-framesym[sigma,b]cds[-sigma]@Perturbation@framesym[rho,a])+If[tb,framesym[rho,a]framesym[sigma,b]framesym[mu,-c]Perturbation@tsym[-rho,-sigma,c]-framesym[rho,a]Perturbation@tsym[mu,-rho,b]+framesym[rho,b]Perturbation@tsym[mu,-rho,a]-framesym[sigma,a]framesym[tau,b]tsym[-sigma,-tau,d]framesym[rho,-d]framesym[mu,-c]Perturbation@framesym[-rho,c]+framesym[sigma,a]tsym[mu,-sigma,c]framesym[rho,-c]Perturbation@framesym[-rho,b]-framesym[sigma,b]tsym[mu,-sigma,c]framesym[rho,-c]Perturbation@framesym[-rho,a],0]],order-1]}]
+]
+SetNumberOfArguments[SpinConnectionToFrame,2];
+Protect[SpinConnectionToFrame];
+
+
+(* ::Input::Initialization:: *)
+ContortionToTorsion[expr_,conncd_List]:=Fold[ContortionToTorsion,expr,conncd]
+ContortionToTorsion[expr_,conncd_]:=expr
+SetNumberOfArguments[ContortionToTorsion,2];
+Protect[ContortionToTorsion];
+
+
+(* ::Input::Initialization:: *)
+(****************************** 2.6 Spin structure, \[Gamma] matrices ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -752,33 +1063,36 @@ $GammaMatrices={};
 
 
 (* ::Input::Initialization:: *)
+$PrecomputeGammaMatrixProducts=True;
+
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,
 DefGenSpinStructure[met_Symbol,inds_List]:=defSpinStruct[met,inds];
 ,
 DefSpinStructure[met_Symbol,inds_List]:=defSpinStruct[met,inds];
 ];
-defSpinStruct[met_Symbol,inds_List]:=Catch@Module[{funcname,tbundle,man,dimm,sdim,sbundle,cd,eucl,i,j,k,spininds,gammainds,g0,g1,gammasym,ccsym,tm,rie,gam},
+defSpinStruct[met_Symbol,inds_List]:=Catch@Module[{funcname,tbundle,man,dimm,sdim,sbundle,cd,fbundle,eucl,i,j,k,l,spininds,gammainds,g0,g1,eta,gf1,gammasym,ccsym,tm,rie,gam,frame,fbsym},
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,funcname=DefGenSpinStructure;,funcname=DefSpinStructure;];
 (* check that metric is the metric of a tangent bundle, with no inner bundles *)
-If[!MetricQ[met],Throw@Message[funcname::unknown,"metric",met]];
-If[xAct`xTensor`Private`FrozenMetricQ[met],Throw@Message[funcname::error,"A frozen metric cannot be used."]];
+If[!MetricQ[met],Throw@Message[Evaluate[MessageName[Evaluate@funcname,"unknown"]],"metric",met]];
+If[xAct`xTensor`Private`FrozenMetricQ[met],Throw@Message[Evaluate[MessageName[Evaluate@funcname,"error"]],"A frozen metric cannot be used."]];
 tbundle=VBundleOfMetric[met];
-If[TangentBundleOfManifold@BaseOfVBundle@tbundle=!=tbundle,
-Throw@Message[funcname::error,"The metric must be defined on a tangent bundle."]];
-cd=CovDOfMetric[met];
-If[Length@VBundlesOfCovD[cd]>1,Throw@Message[funcname::error,"The Levi-Civita connection of the metric cannot be defined on inner vector bundles."]];
-(* manifold must have integer dimension *)
 man=BaseOfVBundle[tbundle];
+If[Tangent[man]=!=tbundle,Throw@Message[Evaluate[MessageName[Evaluate@funcname,"error"]],"The metric must be defined on a tangent bundle."]];
+cd=CovDOfMetric[met];
+(* the frame bundle, if it exists *)
+fbundle=Symbol["Frame"<>SymbolName[man]];
+If[Length@Complement[VBundlesOfCovD[cd],{fbundle,tbundle}]>0,Throw@Message[Evaluate[MessageName[Evaluate@funcname,"error"]],"The Levi-Civita connection of the metric cannot be defined on inner vector bundles."]];
+(* manifold must have integer dimension *)
 dimm=DimOfManifold[man];
-If[(!IntegerQ[dimm])||(dimm<=0),Throw@Message[funcname::invalid,dimm,"positive integer"]];
+If[(!IntegerQ[dimm])||(dimm<=0),Throw@Message[Evaluate[MessageName[Evaluate@funcname,"invalid"]],dimm,"positive integer"]];
 sdim=2^(If[EvenQ[dimm],dimm,dimm-1]/2);
 (* define the spin bundle *)
 sbundle=Symbol["Spin"<>SymbolName[man]];
 DefVBundle[sbundle,man,sdim,inds,PrintAs->("\[DoubleStruckCapitalS]"<>SymbolName[man])];
 (* make it known to the covariant derivative *)
 xTagSet[{cd,CurvatureQ[cd,sbundle]},True];
-VBundlesOfCovD[cd]^=Join[VBundlesOfCovD[cd],{sbundle}];
-xAct`xTensor`Private`defcovdFiber[cd,tbundle,sbundle,CurvatureQ[cd],DefInfo[cd]];
+VBundlesOfCovD[cd]^=DeleteDuplicates@Join[VBundlesOfCovD[cd],{sbundle}];
+xAct`xTensor`Private`defcovdFiber[cd,tbundle,sbundle,CurvatureQ[cd],$DefInfoQ];
 (* define Gamma matrices. *)
 (* Currently we only support Clifford algebra s.t. \[Gamma]^\[Mu]\[Gamma]^\[Nu]+\[Gamma]^\[Nu]\[Gamma]^\[Mu]=2g^\[Mu]\[Nu] *)
 eucl=(SignDetOfMetric[met]==1);
@@ -794,13 +1108,39 @@ xUpSetDelayed[cd[__]@g1[__],0];
 xTagSetDelayed[{g1,g1[__,-k_,k_]},0];
 xUpSet[GammaMatrixQ[g1],True];
 xUpSet[MetricOfGammaMatrix[g1],met];
-(* Perturbation depends on the index structure *)
-xAct`xPert`Private`ExpandPerturbation1[Perturbation[g1[i_?UpIndexQ,j_,k_],Optional[order_Integer,1]],options___]:=If[order==0,g1[i,j,k],ExpandPerturbation[Perturbation[With[{a=DummyIn[tbundle],b=DummyIn[tbundle]},-1/2 met[i,a]g1[b,j,k]Perturbation[met[-a,-b],1]],order-1],options]];
-	xAct`xPert`Private`ExpandPerturbation1[Perturbation[g1[i_?DownIndexQ,j_,k_],Optional[order_Integer,1]],options___]:=If[order==0,g1[i,j,k],ExpandPerturbation[Perturbation[With[{a=DummyIn[tbundle]},1/2 g1[a,j,k]Perturbation[met[i,-a],1]],order-1],options]];
-xTagSet[{g1,ImplicitTensorDepQ[g1,met]},True];
+(* If we have a frame field, define also the frame \[Gamma] matrices *)
+If[FrameBundleQ[fbundle],
+eta=First@MetricsOfVBundle[fbundle];
+frame=FrameFieldOfBundle[tbundle,fbundle];
+gf1=GammaMatrix[eta,1];
+gammainds=Join[GetIndicesOfVBundle[fbundle,1],spininds];
+DefTensor[gf1@@gammainds,man,PrintAs->("\[Gamma]["<>SymbolName[eta]<>"]"),Dagger->Real,GradeOfTensor->{CenterDot->0}];
+AppendTo[$GammaMatrices,gf1];
+xUpSetDelayed[cd[__]@gf1[__],0];
+xTagSetDelayed[{gf1,gf1[__,-k_,k_]},0];
+xUpSet[GammaMatrixQ[gf1],True];
+xUpSet[MetricOfGammaMatrix[gf1],eta];
+];
+(* Perturbation depends on the index structure and whether a frame bundle is defined *)
 Unprotect[LeftVarD];
-LeftVarD[met[a_,b_],cd_][g1[i_?UpIndexQ,j_,k_],lrest_,rrest_]:=With[{c=DummyIn[tbundle],d=DummyIn[tbundle]},LeftVarD[met[a,b],cd][met[-c,-d],lrest\[CenterDot](-1/2 met[i,c]g1[d,j,k]),rrest]];
-LeftVarD[met[a_,b_],cd_][g1[i_?DownIndexQ,j_,k_],lrest_,rrest_]:=With[{c=DummyIn[tbundle],d=DummyIn[tbundle]},LeftVarD[met[a,b],cd][met[-c,-d],lrest\[CenterDot](1/2delta[i,c] g1[d,j,k]),rrest]];
+If[FrameBundleQ[fbundle],
+xTagSet[{gf1,ImplicitTensorDepQ[gf1,eta]},True];
+xTagSet[{g1,ImplicitTensorDepQ[g1,frame]},True];
+(* perturbations of frame gamma matrices *)
+inject[{gam->gf1,ccsym->eta,fbsym->fbundle},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[i_?DownIndexQ,j_,k_],Optional[order_Integer,1]],options___]:=If[order==0,gam[i,j,k],ExpandPerturbation[Perturbation[With[{a=DummyIn[fbsym]},ccsym[i,-a]Perturbation[gam[a,j,k],1]],order-1],options]]];
+inject[{gam->gf1,ccsym->eta,fbsym->fbundle},LeftVarD[ccsym[a_,b_],covd_][gam[i_?DownIndexQ,j_,k_],lrest_,rrest_]:=With[{c=DummyIn[fbsym]},LeftVarD[ccsym[a,b],covd][ccsym[i,-c],lrest\[CenterDot]gam[c,j,k],rrest]]];
+inject[{gam->gf1,ccsym->eta},LeftVarD[ccsym[a_,b_],covd_][gam[i_?UpIndexQ,j_,k_],lrest_,rrest_]:=0];
+(* perturbations of tangent gamma matrices *)
+inject[{gam->g1,g0->gf1,ccsym->frame,fbsym->fbundle},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[i_,j_,k_],Optional[order_Integer,1]],options___]:=If[order==0,gam[i,j,k],ExpandPerturbation[Perturbation[With[{a=DummyIn[fbsym]},Perturbation[ccsym[i,-a]g0[a,j,k],1]],order-1],options]]];
+inject[{gam->g1,g0->gf1,ccsym->frame,fbsym->fbundle},LeftVarD[ccsym[a_,b_],covd_][gam[i_,j_,k_],lrest_,rrest_]:=With[{c=DummyIn@fbsym},LeftVarD[ccsym[a,b],covd][ccsym[i,-c],lrest\[CenterDot]g0[a,j,k],rrest]]];
+,
+xTagSet[{g1,ImplicitTensorDepQ[g1,met]},True];
+(* only perturbations of tangent gamma matrices in terms of the metric *)
+inject[{gam->g1,ccsym->met,fbsym->tbundle},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[i_?UpIndexQ,j_,k_],Optional[order_Integer,1]],options___]:=If[order==0,gam[i,j,k],ExpandPerturbation[Perturbation[With[{a=DummyIn[fbsym],b=DummyIn[fbsym]},-1/2ccsym[i,a]gam[b,j,k]Perturbation[ccsym[-a,-b],1]],order-1],options]]];
+	inject[{gam->g1,ccsym->met,fbsym->tbundle},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[i_?DownIndexQ,j_,k_],Optional[order_Integer,1]],options___]:=If[order==0,gam[i,j,k],ExpandPerturbation[Perturbation[With[{a=DummyIn[fbsym]},1/2 gam[a,j,k]Perturbation[ccsym[i,-a],1]],order-1],options]]];
+inject[{gam->g1,ccsym->met,fbsym->tbundle},LeftVarD[ccsym[a_,b_],covd_][gam[i_?UpIndexQ,j_,k_],lrest_,rrest_]:=With[{c=DummyIn[fbsym],d=DummyIn[fbsym]},LeftVarD[ccsym[a,b],covd][ccsym[-c,-d],lrest\[CenterDot](-1/2 ccsym[i,c]gam[d,j,k]),rrest]]];
+inject[{gam->g1,ccsym->met,fbsym->tbundle},LeftVarD[ccsym[a_,b_],covd_][gam[i_?DownIndexQ,j_,k_],lrest_,rrest_]:=With[{c=DummyIn[fbsym],d=DummyIn[fbsym]},LeftVarD[ccsym[a,b],covd][ccsym[-c,-d],lrest\[CenterDot](1/2ccsym[i,c] gam[d,j,k]),rrest]]];
+];
 Protect[LeftVarD];
 (* Define the matrix that implements Hermitean conjugation for Lorentzian metrics (i.e., Dagger) - \[Gamma]^0 as per Freedman/van Proeyen. *)
 If[Not[eucl],
@@ -812,11 +1152,25 @@ xTagSetDelayed[{g0,g0[-k_,k_]},0];
 xTagSetDelayed[{g0,g0[-i_,j_]g0[-j_,k_]},-delta[-i,k]];
 xUpSet[GammaMatrixQ[g0],True];
 xUpSet[MetricOfGammaMatrix[g0],met];
-(* No Perturbation since it's a fixed matrix *)
-xAct`xPert`Private`ExpandPerturbation1[Perturbation[g0[j_,k_],Optional[order_Integer,1]],options___]:=If[order==0,g0[j,k],0];
+(* No Perturbation since it's a fixed matrix, but only if we have no frame bundle (and thus no Lorentz trafos) *)
+If[!FrameBundleQ[fbundle],inject[{gam->g0},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[j_,k_],Optional[order_Integer,1]],options___]:=If[order==0,gam[j,k],0]]];
 (* Fix Dagger *)
 inject[{gam->g0},Dagger[gam]^=Function[-gam[-#2,-#1]]];
 inject[{gam->g0,rie->g1,tm->sbundle},Dagger[rie]^=Function[Module[{a=DummyIn[tm],b=DummyIn[tm]},gam[-#3,a]rie[#1,-a,b]gam[-b,-#2]]]];
+(* same for frame bundle matrix *)
+If[FrameBundleQ[fbundle],
+g0=GammaMatrix[eta,Zero];
+DefTensor[g0@@spininds,man,{PrintAs->"\!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\)["<>SymbolName[eta]<>"]",Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}}];
+AppendTo[$GammaMatrices,g0];
+xUpSetDelayed[cd[_]@g0[__],0];
+xTagSetDelayed[{g0,g0[-k_,k_]},0];
+xTagSetDelayed[{g0,g0[-i_,j_]g0[-j_,k_]},-delta[-i,k]];
+xUpSet[GammaMatrixQ[g0],True];
+xUpSet[MetricOfGammaMatrix[g0],eta];
+(* Fix Dagger *)
+inject[{gam->g0},Dagger[gam]^=Function[-gam[-#2,-#1]]];
+inject[{gam->g0,rie->gf1,tm->fbundle},Dagger[rie]^=Function[Module[{a=DummyIn[tm],b=DummyIn[tm]},gam[-#3,a]rie[#1,-a,b]gam[-b,-#2]]]];
+];
 ];
 (* all the higher \[Gamma] matrices are servants of \[Gamma]^\[Mu] *)
 For[i=2,i<=dimm,i++,
@@ -831,11 +1185,37 @@ xUpSet[MetricOfGammaMatrix[gammasym],met];
 (* Fix Dagger *)
 If[Not[eucl],inject[{gam->g0,rie->gammasym,tm->sbundle,j->i},Dagger[rie]^=Function[Module[{a=DummyIn[tm],b=DummyIn[tm]},(-1)^j gam[-{##}[[-1]],a]rie@@Join[{##}[[1;;j]],{-a,b}]gam[-b,-{##}[[-2]]]]]]];
 (* Perturbation ist just the perturbation of its split form *)
-xAct`xPert`Private`ExpandPerturbation1[Perturbation[gammasym[indices__],Optional[order_Integer,1]],options___]:=ToCanonical[JoinGammaMatrices[ExpandPerturbation[Perturbation[SplitGammaMatrix[gammasym[indices],True],order],options]]];
-xTagSet[{gammasym,ImplicitTensorDepQ[gammasym,met]},True];
+inject[{gam->gammasym},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]:=ExpandPerturbation[Perturbation[SplitGammaMatrix[gam[indices],True],order],options]];
+(* tangent \[Gamma] matrices depend on metric or frame field *)
 Unprotect[LeftVarD];
-LeftVarD[met[a_,b_],cd_][gammasym[indices__],lrest_,rrest_]:=LeftVarD[met[a,b],cd][SplitGammaMatrix[gammasym[indices],True],lrest,rrest];
+If[FrameBundleQ[fbundle],
+xTagSet[{gammasym,ImplicitTensorDepQ[gammasym,frame]},True];
+inject[{gam->gammasym,ccsym->frame},LeftVarD[ccsym[a_,b_],covd_][gam[indices__],lrest_,rrest_]:=LeftVarD[ccsym[a,b],covd][SplitGammaMatrix[gam[indices],True],lrest,rrest]];
+,
+xTagSet[{gammasym,ImplicitTensorDepQ[gammasym,met]},True];
+inject[{gam->gammasym,ccsym->met},LeftVarD[ccsym[a_,b_],covd_][gam[indices__],lrest_,rrest_]:=LeftVarD[ccsym[a,b],covd][SplitGammaMatrix[gam[indices],True],lrest,rrest]];
+];
 Protect[LeftVarD];
+(* same for frame bundle matrix *)
+If[FrameBundleQ[fbundle],
+gammasym=GammaMatrix[eta,i];
+gammainds=Join[GetIndicesOfVBundle[fbundle,i],spininds];
+DefTensor[gammasym@@gammainds,man,Antisymmetric[Range[i]],PrintAs->("\[Gamma]["<>SymbolName[eta]<>"]"),Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}];
+AppendTo[$GammaMatrices,gammasym];
+xUpSetDelayed[cd[__]@gammasym[__],0];
+xTagSetDelayed[{gammasym,gammasym[__,-k_,k_]},0];
+xUpSet[GammaMatrixQ[gammasym],True];
+xUpSet[MetricOfGammaMatrix[gammasym],eta];
+(* Fix Dagger *)
+If[Not[eucl],inject[{gam->g0,rie->gammasym,tm->fbundle,j->i},Dagger[rie]^=Function[Module[{a=DummyIn[tm],b=DummyIn[tm]},(-1)^j gam[-{##}[[-1]],a]rie@@Join[{##}[[1;;j]],{-a,b}]gam[-b,-{##}[[-2]]]]]]];
+(* Perturbation ist just the perturbation of its split form *)
+inject[{gam->gammasym},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]:=ExpandPerturbation[Perturbation[SplitGammaMatrix[gam[indices],True],order],options]];
+(* frame \[Gamma] matrices depend on frame metric *)
+xTagSet[{gammasym,ImplicitTensorDepQ[gammasym,eta]},True];
+Unprotect[LeftVarD];
+inject[{gam->gammasym,ccsym->eta},LeftVarD[ccsym[a_,b_],covd_][gam[indices__],lrest_,rrest_]:=LeftVarD[ccsym[a,b],covd][SplitGammaMatrix[gam[indices],True],lrest,rrest]];
+Protect[LeftVarD];
+];
 ];
 If[EvenQ[dimm],
 gammasym=GammaMatrix[met,Star];
@@ -843,26 +1223,47 @@ DefTensor[gammasym@@spininds,man,PrintAs->("\!\(\*SuperscriptBox[\(\[Gamma]\), \
 AppendTo[$GammaMatrices,gammasym];
 xUpSetDelayed[cd[__]@gammasym[__],0];
 xTagSetDelayed[{gammasym,gammasym[-k_,k_]},0];
-xTagSetDelayed[{gammasym,gammasym[-i_,j_]gammasym[-j_,k_]},$GammaStarSign^2delta[-i,k]];
+xTagSetDelayed[{gammasym,gammasym[-l_,j_]gammasym[-j_,k_]},$GammaStarSign^2delta[-l,k]];
 xUpSet[GammaMatrixQ[gammasym],True];
 xUpSet[MetricOfGammaMatrix[gammasym],met];
-(* No Perturbation since it's a fixed matrix *)
-xAct`xPert`Private`ExpandPerturbation1[Perturbation[gammasym[indices__],Optional[order_Integer,1]],options___]:=If[order==0,gammasym[indices],0];
+(* No Perturbation since it's a fixed matrix, but only if we have no frame bundle (and thus no Lorentz trafos). Otherwise perturbation of split form. *)
+inject[{gam->gammasym},If[!FrameBundleQ[fbundle],xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]:=If[order==0,gam[indices],0],xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]:=ExpandPerturbation[Perturbation[SplitGammaMatrix[gam[indices],False],order],options]]];
+(* same for frame bundle matrix *)
+If[FrameBundleQ[fbundle],
+gammasym=GammaMatrix[eta,Star];
+DefTensor[gammasym@@spininds,man,PrintAs->("\!\(\*SuperscriptBox[\(\[Gamma]\), \(*\)]\)["<>SymbolName[eta]<>"]"),Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}];
+AppendTo[$GammaMatrices,gammasym];
+xUpSetDelayed[cd[__]@gammasym[__],0];
+xTagSetDelayed[{gammasym,gammasym[-k_,k_]},0];
+xTagSetDelayed[{gammasym,gammasym[-l_,j_]gammasym[-j_,k_]},$GammaStarSign^2delta[-l,k]];
+xUpSet[GammaMatrixQ[gammasym],True];
+xUpSet[MetricOfGammaMatrix[gammasym],eta];
+inject[{gam->gammasym},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]:=ExpandPerturbation[Perturbation[SplitGammaMatrix[gam[indices],False],order],options]];
+];
 ];
 (* dispatch to the correct Gamma matrix *)
 gammasym=Symbol["Gamma"<>SymbolName[met]];
 inject[{gam->gammasym},gam[ind__]:=With[{len=Length[{ind}]},If[len>2+DimOfVBundle[VBundleOfIndex[First[{ind}]]],0,If[len==2,delta[ind],Symbol[SymbolName[gam]<>ToString[len-2]][ind]]]]];
-(* Perturbation of covariant derivative *)
-inject[{tm->Tangent[man],ccsym->Symbol["AChristoffel"<>SymbolName[cd]],rie->cd,gam->GammaMatrix[met,2]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[ccsym[i_?UpIndexQ,j_?DownIndexQ,k_?DownIndexQ],Optional[order_Integer,1]],options___]:=If[order==0,ccsym[i,j,k],ExpandPerturbation[Perturbation[With[{rho=DummyIn@tm,sigma=DummyIn@tm},-1/4 gam[rho,sigma,k,i]rie[-sigma]@Perturbation[met[-rho,j]]],order-1],options]]];
+gammasym=Symbol["Gamma"<>SymbolName[eta]];
+inject[{gam->gammasym},gam[ind__]:=With[{len=Length[{ind}]},If[len>2+DimOfVBundle[VBundleOfIndex[First[{ind}]]],0,If[len==2,delta[ind],Symbol[SymbolName[gam]<>ToString[len-2]][ind]]]]];
+(* Perturbation of covariant derivative, only if no frame bundle is defined (otherwise determined by spin connection) *)
+If[!FrameBundleQ[fbundle],
+inject[{tm->tbundle,ccsym->Symbol["AChristoffel"<>SymbolName[cd]],rie->cd,gam->GammaMatrix[met,2]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[ccsym[i_?UpIndexQ,j_?DownIndexQ,k_?DownIndexQ],Optional[order_Integer,1]],options___]:=If[order==0,ccsym[i,j,k],ExpandPerturbation[Perturbation[With[{rho=DummyIn@tm,sigma=DummyIn@tm},-1/4 gam[rho,sigma,k,i]rie[-sigma]@Perturbation[met[-rho,j]]],order-1],options]]];
+];
 (* let the FRiemann tensor expand into ordinary Riemann tensor and Gamma matrices *)
 gammasym=GammaMatrix[met,2];
-inject[{tm->Tangent[man],rie->Riemann[cd],gam->gammasym},FRiemann[cd][mu_,nu_,a_,b_]:=Module[{rho=DummyIn[tm],sigma=DummyIn[tm]},1/4 rie[mu,nu,rho,sigma]gam[-rho,-sigma,a,b]]];
+inject[{tm->tbundle,rie->Riemann[cd],gam->gammasym,ccsym->sbundle},FRiemann[cd][mu_,nu_,a_,b_]/;(VBundleOfIndex[a]===ccsym):=Module[{rho=DummyIn[tm],sigma=DummyIn[tm]},1/4 rie[mu,nu,rho,sigma]gam[-rho,-sigma,a,b]]];
 (* fix some implicit dependencies to make Left/RightVarD work *)
-Map[xTagSet[{#,ImplicitTensorDepQ[#,met]},True]&,{Determinant[met,AIndex],epsilon[met],GiveSymbol[Christoffel,cd],GiveSymbol[Riemann,cd],GiveSymbol[Ricci,cd],GiveSymbol[RicciScalar,cd],GiveSymbol[Einstein,cd],GiveSymbol[Weyl,cd],GiveSymbol[TFRicci,cd],GiveSymbol[Kretschmann,cd],GiveSymbol[SymRiemann,cd],GiveSymbol[Schouten,CD]}];
+Map[xTagSet[{#,ImplicitTensorDepQ[#,met]},True]&,{Determinant[met,AIndex],epsilon[met],GiveSymbol[Christoffel,cd],GiveSymbol[Riemann,cd],GiveSymbol[Ricci,cd],GiveSymbol[RicciScalar,cd],GiveSymbol[Einstein,cd],GiveSymbol[Weyl,cd],GiveSymbol[TFRicci,cd],GiveSymbol[Kretschmann,cd],GiveSymbol[SymRiemann,cd],GiveSymbol[Schouten,cd]}];
 (* precompute \[Gamma] matrix products *)
+If[$PrecomputeGammaMatrixProducts,
 If[$DefInfoQ,PrintTemporary["** ",ToString@funcname,": Precomputing \[Gamma] products..."]];
 xUpSet[GammaMatrixProducts[met],PrecomputeGammaProducts[met]];
+If[FrameBundleQ[fbundle],xUpSet[GammaMatrixProducts[eta],PrecomputeGammaProducts[eta]];];
 If[$DefInfoQ,Print["** ",ToString@funcname,": Precomputing \[Gamma] products... done."]];
+,
+If[$DefInfoQ,Print["** ",ToString@funcname,": Not precomputing \[Gamma] products."]];
+];
 ];
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,
 SetNumberOfArguments[DefGenSpinStructure,2];
@@ -879,26 +1280,77 @@ UndefGenSpinStructure[met_Symbol]:=undefSpinStruct[met];
 ,
 UndefSpinStructure[met_Symbol]:=undefSpinStruct[met];
 ];
-undefSpinStruct[met_Symbol]:=Catch@Module[{funcname,cd,tbundle,sbundle,vislen,i,sdim,gammasym},
+undefSpinStruct[met_Symbol]:=Catch@Module[{funcname,cd,tbundle,sbundle,fbundle,eta,vislen,i,dimm,gammasym,gam,fbsym,ccsym},
 If[SpinorsPkgLoaded&&SpinorsKeepDefs,funcname=UndefGenSpinStructure;,funcname=UndefSpinStructure;];
-If[!MetricQ[met],Throw@Message[funcname::unknown,"metric",met]];
+If[!MetricQ[met],Throw@Message[Evaluate[MessageName[Evaluate@funcname,"unknown"]],"metric",met]];
+tbundle=VBundleOfMetric[met];
+sbundle=Symbol["Spin"<>SymbolName[BaseOfVBundle[tbundle]]];
+fbundle=Symbol["Frame"<>SymbolName[BaseOfVBundle[tbundle]]];
 cd=CovDOfMetric[met];
-If[Length@VBundlesOfCovD[cd]!=2,Throw@Message[funcname::missing,"spin structure","the metric "<>SymbolName[gg]]];
-{tbundle,sbundle}=VBundlesOfCovD[cd];
+If[!MemberQ[VBundlesOfCovD[cd],sbundle],Throw@Message[Evaluate[MessageName[Evaluate@funcname,"missing"]],"spin structure","the metric "<>SymbolName[gg]]];
 (* check if there are tensors still defined on the spin bundle, except Gamma matrices and AChristoffel/FRiemann *)
-sdim=DimOfVBundle[sbundle];
-vislen=2+sdim+If[EvenQ[sdim],1,0]+If[SignDetOfMetric[met]==-1,1,0];
-If[Length@VisitorsOf[sbundle]>vislen,Throw@Message[funcname::noundef,"Spin bundle",sbundle,"it has visitors"]];
+dimm=DimOfVBundle[tbundle];
+vislen=2+dimm+If[EvenQ[dimm],1,0]+If[SignDetOfMetric[met]==-1,1,0];
+If[FrameBundleQ[fbundle],vislen=vislen+dimm+If[EvenQ[dimm],1,0]+If[SignDetOfMetric[met]==-1,1,0];];
+If[Length@VisitorsOf[sbundle]>vislen,Throw@Message[Evaluate[MessageName[Evaluate@funcname,"noundef"]],"Spin bundle",sbundle,"it has visitors"]];
 (* remove associated symbols from covariant derivative *)
 Evaluate[cd]/:CurvatureQ[cd,sbundle]=.;
-VBundlesOfCovD[cd]^={VBundlesOfCovD[cd][[1]]};
+VBundlesOfCovD[cd]^=DeleteCases[VBundlesOfCovD[cd],sbundle];
 ServantsOf[cd]^=DeleteCases[ServantsOf[cd],FRiemann[cd]|GiveSymbol[AChristoffel,cd]];
+(* remove perturbations *)
+Unprotect[LeftVarD];
+If[FrameBundleQ[fbundle],
+eta=First@MetricsOfVBundle@fbundle;
+(* perturbations of frame gamma matrices *)
+inject[{gam->GammaMatrix[eta,1]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[i_?DownIndexQ,j_,k_],Optional[order_Integer,1]],options___]=.];
+inject[{gam->GammaMatrix[eta,1],ccsym->eta},LeftVarD[ccsym[a_,b_],covd_][gam[i_?DownIndexQ,j_,k_],lrest_,rrest_]=.];
+inject[{gam->GammaMatrix[eta,1],ccsym->eta},LeftVarD[ccsym[a_,b_],covd_][gam[i_?UpIndexQ,j_,k_],lrest_,rrest_]=.];
+(* perturbations of tangent gamma matrices *)
+inject[{gam->GammaMatrix[met,1]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[i_,j_,k_],Optional[order_Integer,1]],options___]=.];
+inject[{gam->GammaMatrix[met,1],ccsym->FrameFieldOfBundle[tbundle,fbundle]},LeftVarD[ccsym[a_,b_],covd_][gam[i_,j_,k_],lrest_,rrest_]=.];
+For[i=2,i<=DimOfVBundle[tbundle],i++,
+inject[{gam->GammaMatrix[met,i]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]=.];
+inject[{gam->GammaMatrix[met,i],ccsym->FrameFieldOfBundle[tbundle,fbundle]},LeftVarD[ccsym[a_,b_],covd_][gam[indices__],lrest_,rrest_]=.];
+inject[{gam->GammaMatrix[eta,i]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]=.];
+inject[{gam->GammaMatrix[eta,i],ccsym->eta},LeftVarD[ccsym[a_,b_],covd_][gam[indices__],lrest_,rrest_]=.];
+];
+If[EvenQ[DimOfVBundle[tbundle]],
+inject[{gam->GammaMatrix[met,Star]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]=.];
+inject[{gam->GammaMatrix[eta,Star]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]=.];
+];
+,
+(* only perturbations of tangent gamma matrices in terms of the metric *)
+inject[{gam->GammaMatrix[met,1]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[i_?UpIndexQ,j_,k_],Optional[order_Integer,1]],options___]=.];
+	inject[{gam->GammaMatrix[met,1]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[i_?DownIndexQ,j_,k_],Optional[order_Integer,1]],options___]=.];
+inject[{gam->GammaMatrix[met,1],ccsym->met,fbsym->tbundle},LeftVarD[ccsym[a_,b_],covd_][gam[i_?UpIndexQ,j_,k_],lrest_,rrest_]=.];
+inject[{gam->GammaMatrix[met,1],ccsym->met,fbsym->tbundle},LeftVarD[ccsym[a_,b_],covd_][gam[i_?DownIndexQ,j_,k_],lrest_,rrest_]=.];
+For[i=2,i<=DimOfVBundle[tbundle],i++,
+inject[{gam->GammaMatrix[met,i]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]=.];
+inject[{gam->GammaMatrix[met,i],ccsym->met},LeftVarD[ccsym[a_,b_],covd_][gam[indices__],lrest_,rrest_]=.];
+];
+If[EvenQ[DimOfVBundle[tbundle]],
+inject[{gam->GammaMatrix[met,Star]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]=.];
+];
+If[SignDetOfMetric[met]==-1,
+inject[{gam->GammaMatrix[met,Zero]},xAct`xPert`Private`ExpandPerturbation1[Perturbation[gam[indices__],Optional[order_Integer,1]],options___]=.];
+];
+];
+Protect[LeftVarD];
 (* undefine precomputed \[Gamma] matrix products, the \[Gamma] matrices and AChristoffel/FRiemann *)
-Unset[GammaMatrixProducts[met]];
+If[$PrecomputeGammaMatrixProducts,met/:GammaMatrixProducts[met]=.;];
 gammasym=GammaMatrix[met,1];
 UndefTensor[gammasym];
 gammasym=Symbol["Gamma"<>SymbolName[met]];
 ClearAll[gammasym];
+(* also remove frame gamma matrices *)
+If[FrameBundleQ[fbundle],
+eta=First@MetricsOfVBundle[fbundle];
+If[$PrecomputeGammaMatrixProducts,eta/:GammaMatrixProducts[eta]=.;];
+gammasym=GammaMatrix[eta,1];
+UndefTensor[gammasym];
+gammasym=Symbol["Gamma"<>SymbolName[eta]];
+ClearAll[gammasym];
+];
 MasterOf[FRiemann[cd]]^=Null;
 UndefTensor[FRiemann[cd]];
 MasterOf[GiveSymbol[AChristoffel,cd]]^=Null;
@@ -966,8 +1418,9 @@ Protect[SplitGammaMatrices];
 
 (* ::Input::Initialization:: *)
 InternalGammaProduct[ainds_,binds_,metric_,ginds_]:=With[{i=Length[ainds],j=Length[binds],gname=Symbol["Gamma"<>SymbolName[metric]]},Module[{awdinds,bwdinds},
-awdinds=GetIndicesOfVBundle[VBundleOfMetric[metric],i];bwdinds=GetIndicesOfVBundle[VBundleOfMetric[metric],j,awdinds];
-ToCanonical[Antisymmetrize[Antisymmetrize[Sum[i!j!/(k! (i-k)!(j-k)!)gname@@Join[awdinds[[1;;i-k]],bwdinds[[k+1;;j]],ginds]Product[metric[awdinds[[i+1-r]],bwdinds[[r]]],{r,1,k}],{k,0,Min[i,j]}],bwdinds],awdinds]/.Thread@Rule[Join[awdinds,bwdinds],Join[ainds,binds]](*Map[(#1/.{{x_,y_}\[RuleDelayed](x\[Rule]y)})&,Transpose[{Join[awdinds,bwdinds],Join[ainds,binds]}]]*)]
+awdinds=GetIndicesOfVBundle[VBundleOfMetric[metric],i];
+bwdinds=GetIndicesOfVBundle[VBundleOfMetric[metric],j,awdinds];
+ToCanonical@ContractMetric[Antisymmetrize[Antisymmetrize[Sum[i!j!/(k! (i-k)!(j-k)!)gname@@Join[awdinds[[1;;i-k]],bwdinds[[k+1;;j]],ginds]Product[metric[awdinds[[i+1-r]],bwdinds[[r]]],{r,1,k}],{k,0,Min[i,j]}],bwdinds],awdinds]/.Thread@Rule[Join[awdinds,bwdinds],Join[ainds,binds]]]
 ]]
 
 
@@ -988,20 +1441,9 @@ gamtbl[[i,j,5]]/.Join[Thread@Rule[gamtbl[[i,j,1]],ainds],Thread@Rule[gamtbl[[i,j
 
 
 (* ::Input::Initialization:: *)
-JoinGammaGammaStar[gam_[inds__,A_,B_],gams_[-B_,C_]]:=Module[{met,bundle,dimm,ilist,gammax},
-met=MetricOfGammaMatrix[gam];
-bundle=VBundleOfMetric[met];
-dimm=DimOfVBundle[bundle];
-gammax=GiveSymbol[Gamma,met,dimm];
-ilist=DummiesIn[bundle,dimm];
-$GammaStarSign (-I)^(dimm/2+3)/dimm!ToCanonical@ContractMetric[epsilon[met]@@(-ilist)PrecomputedGammaProduct[{inds},ilist,met,{A,C}]]
-]
-
-
-(* ::Input::Initialization:: *)
 JoinGammaMatrices[f_Plus,keep_?BooleanQ]:=Map[JoinGammaMatrices[#,keep]&,f]
-JoinGammaMatrices[f_,keep:(_?BooleanQ):False]:=With[{f2=f//.{x_. ga_?GammaMatrixQ[indsa__,B_,A_]gb_?GammaMatrixQ[indsb__,-A_,C_]:>Expand[x PrecomputedGammaProduct[{indsa},{indsb},MetricOfGammaMatrix[ga],{B,C}]]}//.{ga_?GammaStarQ[A_,B_]gb_?GammaMatrixQ[inds__,-B_,C_]gc_?GammaStarQ[-C_,D_]:>(-1)^Length@List[inds]$GammaStarSign^2gb[inds,A,D],ga_?GammaStarQ[A_,B_]gb_?GammaZeroQ[-B_,C_]gc_?GammaStarQ[-C_,D_]:>-$GammaStarSign^2gb[A,D],ga_?GammaZeroQ[A_,B_]gb_?GammaStarQ[-B_,C_]gc_?GammaZeroQ[-C_,D_]:>gb[A,D]}},
-If[keep,f2,f2/.{ga_?GammaMatrixQ[inds__,A_,B_]gb_?GammaStarQ[-B_,C_]:>JoinGammaGammaStar[ga[inds,A,B],gb[-B,C]],ga_?GammaStarQ[A_,B_]gb_?GammaMatrixQ[inds__,-B_,C_]:>(-1)^Length@List[inds]JoinGammaGammaStar[gb[inds,A,B],ga[-B,C]]}]]
+JoinGammaMatrices[f_,keep:(_?BooleanQ):False]:=With[{f2=f//.{x_. ga_?GammaMatrixQ[indsa__,B_,A_]gb_?GammaMatrixQ[indsb__,-A_,C_]/;SameQ@@Map[MetricOfGammaMatrix,{ga,gb}]:>Expand[x If[$PrecomputeGammaMatrixProducts,PrecomputedGammaProduct[{indsa},{indsb},MetricOfGammaMatrix[ga],{B,C}],InternalGammaProduct[{indsa},{indsb},MetricOfGammaMatrix[ga],{B,C}]]]}//.{ga_?GammaStarQ[A_,B_]gb_?GammaMatrixQ[inds__,-B_,C_]gc_?GammaStarQ[-C_,D_]/;SameQ@@Map[MetricOfGammaMatrix,{ga,gb,gc}]:>(-1)^Length@List[inds]$GammaStarSign^2gb[inds,A,D],ga_?GammaStarQ[A_,B_]gb_?GammaZeroQ[-B_,C_]gc_?GammaStarQ[-C_,D_]/;SameQ@@Map[MetricOfGammaMatrix,{ga,gb,gc}]:>-$GammaStarSign^2gb[A,D],ga_?GammaZeroQ[A_,B_]gb_?GammaStarQ[-B_,C_]gc_?GammaZeroQ[-C_,D_]/;SameQ@@Map[MetricOfGammaMatrix,{ga,gb,gc}]:>gb[A,D]}},
+If[keep,f2,f2/.{ga_?GammaMatrixQ[inds__,A_,B_]gb_?GammaStarQ[-B_,C_]/;SameQ@@Map[MetricOfGammaMatrix,{ga,gb}]:>DualGammaMatrix[ga[inds,A,B]]gb[-B,C],ga_?GammaStarQ[A_,B_]gb_?GammaMatrixQ[inds__,-B_,C_]/;SameQ@@Map[MetricOfGammaMatrix,{ga,gb}]:>(-1)^Length@List[inds]DualGammaMatrix[gb[inds,A,B]]ga[-B,C]}]]
 SetNumberOfArguments[JoinGammaMatrices,{1,2}];
 Protect[JoinGammaMatrices];
 
@@ -1018,7 +1460,8 @@ dualgam=If[dim-gamdim>0,GiveSymbol[Gamma,met,dim-gamdim],delta];
 gamstar=If[EvenQ[dim]&&gamdim>0,GiveSymbol[Gamma,met,Star],delta];
 If[EvenQ[dim],
 (-I)^(dim/2+3)/(dim-gamdim)!(-1)^(gamdim (gamdim-1)/2)If[gamdim>0,1/$GammaStarSign ,$GammaStarSign]With[{dinds=DummiesIn[bdl,dim-gamdim],C=DummyIn@sbdl},epsilon[met]@@Join[{inds},dinds]dualgam@@Join[-dinds,{A,C}]gamstar[-C,B]],
-$GammaStarSign (I)^(dim/2+3)/(dim-gamdim)!(-1)^((dim-gamdim)(dim-gamdim-1)/2)With[{dinds=DummiesIn[bdl,dim-gamdim]},epsilon[met]@@Join[{inds},dinds]dualgam@@Join[-dinds,{A,B}]]]]
+$GammaStarSign (I)^(dim/2+3)/(dim-gamdim)!(-1)^((dim-gamdim)(dim-gamdim-1)/2)With[{dinds=DummiesIn[bdl,dim-gamdim]},epsilon[met]@@Join[{inds},dinds]dualgam@@Join[-dinds,{A,B}]]
+]]
 SetNumberOfArguments[DualGammaMatrix,1];
 Protect[DualGammaMatrix];
 
@@ -1040,6 +1483,40 @@ Protect[GammaMatricesToDual];
 
 
 (* ::Input::Initialization:: *)
+ChangeGammaMatrices[expr_,met1_?MetricQ,met2_?MetricQ]:=Catch@Module[{gamlist,bdl1,bdl2,frame,gammas,reps,i,ngam,bsym,gsym,gamsym,frsym},
+bdl1=VBundleOfMetric[met1];
+bdl2=VBundleOfMetric[met2];
+If[(!FrameBundleQ[bdl1])&&(!FrameBundleQ[bdl2]),Throw@Message[ChangeGammaMatrices::error,"None of "<>ToString@met1<>", "<>ToString@met2<>" is a frame bundle metric."]];
+If[(bdl1=!=Tangent@BaseOfVBundle[bdl1])&&(bdl2=!=Tangent@BaseOfVBundle[bdl2]),Throw@Message[ChangeGammaMatrices::error,"None of "<>ToString@met1<>", "<>ToString@met2<>" is a tangent bundle metric."]];
+If[FrameBundleQ[bdl1],
+frame=FrameFieldOfBundle[bdl2,bdl1];
+,
+frame=FrameFieldOfBundle[bdl1,bdl2];
+];
+gammas=Select[$GammaMatrices,(MetricOfGammaMatrix[#]===met1)&];
+reps={};
+For[i=1,i<=Length@gammas,i=i+1,
+ngam=Symbol["Gamma"<>SymbolName[met2]<>StringDrop[SymbolName[gammas[[i]]],5+StringLength@SymbolName[met1]]];
+If[Length@SlotsOfTensor[gammas[[i]]]==2,
+(* special \[Gamma] matrices *)
+inject[{gamsym->ngam,gsym->gammas[[i]]},AppendTo[reps,gsym[inds__]:>gamsym[inds]]];
+,
+(* generalized \[Gamma] matrices. need to check order of indices on frame field *)
+If[FrameBundleQ[bdl1],
+inject[{gamsym->ngam,gsym->gammas[[i]],frsym->frame,bsym->bdl2},AppendTo[reps,gsym[inds__,A_,B_]:>With[{inds2=DummiesIn[bsym,Length[{inds}]]},Times@@frsym@@@Transpose[{-inds2,{inds}}]gamsym@@Join[inds2,{A,B}]]]];
+,
+inject[{gamsym->ngam,gsym->gammas[[i]],frsym->frame,bsym->bdl2},AppendTo[reps,gsym[inds__,A_,B_]:>With[{inds2=DummiesIn[bsym,Length[{inds}]]},Times@@frsym@@@Transpose[{{inds},-inds2}]gamsym@@Join[inds2,{A,B}]]]];
+];
+];
+];
+reps=Dispatch[reps];
+expr/.reps
+]
+SetNumberOfArguments[ChangeGammaMatrices,3];
+Protect[ChangeGammaMatrices];
+
+
+(* ::Input::Initialization:: *)
 EpsGammaRep[dim_,met_,tm_,eps_[epsinds__],gam_[ginds__,A_,B_]]:=With[{i=Length[{ginds}]},Module[{dinds=DummiesIn[tm,i],grepinds=DummiesIn[tm,i],prodmet,epswithin,res},
 prodmet=Times@@(met@@@Transpose[{grepinds,{epsinds}[[1;;i]]}]);
 epswithin=eps@@Join[{epsinds}[[i+1;;-1]],-dinds];
@@ -1050,7 +1527,7 @@ EpsilonGammaReduce[expr_,met_]:=Catch@Module[{i,eps,gam,gams,tm,dim,reps},
 tm=VBundleOfMetric[met];
 dim=DimOfVBundle[tm];
 If[!IntegerQ[dim],Throw@Message[EpsilonGammaReduce::wrongdim,dim]];
-eps=GiveSymbol[epsilon,met];
+eps=epsilon[met];
 gams=Table[GiveSymbol[Gamma,met,i],{i,1,dim}];
 If[!xTensorQ[gams[[1]]],Throw@Message[EpsilonGammaReduce::missing,"spin structure defined",BaseOfVBundle[tm]]];
 reps=Table[inject[{gam->gams[[i]]},eps[inds__]gam[ginds__,A_,B_]:>EpsGammaRep[dim,met,tm,eps[inds],gam[ginds,A,B]]],{i,1,dim}];
@@ -1066,7 +1543,7 @@ EpsYoungProj[expr_,tab_]:=Module[{transtab,n1,n2,erg},transtab=Flatten[tab,{2}];
 n1=Times@@(Length[#1]!&)/@tab;
 n2=Times@@(Length[#1]!&)/@transtab;
 erg=Fold[Symmetrize[#1,#2]&,expr,tab];
-CollectTensors[((TableauDimension[tab] n1 n2) Fold[Antisymmetrize[#1,#2]&,erg,transtab])/Length[Flatten[tab]]!]
+ToCanonical[((TableauDimension[tab] n1 n2) Fold[Antisymmetrize[#1,#2]&,erg,transtab])/Length[Flatten[tab]]!]
 ]
 (* only works with one or two additional indices for now, and in 4D *)
 EpsilonYoungProject[lst_List,met_?MetricQ]:=(EpsilonYoungProject[#1,met]&)/@lst
@@ -1076,9 +1553,9 @@ tm=VBundleOfMetric[met];
 If[DimOfVBundle[tm]=!=4,Throw@Message[EpsilonYoungProject::wrongdim,DimOfVBundle[tm]]];
 epsm=GiveSymbol[epsilon,met];
 If[FreeQ[expr,epsm],Return[expr]];
-allinds=DeleteDuplicates[List@@IndicesOf[tm][expr]/.{-x_:>x}];
-epsinds=List@@FirstCase[expr,epsm[__]]/.{-x_:>x};
-otherinds=Complement[allinds,epsinds];
+allinds=List@@IndicesOf[tm][expr];
+epsinds=List@@FirstCase[expr,epsm[__]];
+otherinds=DeleteDuplicates[Complement[allinds,epsinds,-epsinds],((#1===#2)||(#1===-#2))&];
 Switch[Length[otherinds],
 0,expr,
 1,EpsYoungProj[expr,{{epsinds[[1]],otherinds[[1]]},{epsinds[[2]]},{epsinds[[3]]},{epsinds[[4]]}}],
@@ -1090,7 +1567,7 @@ Protect[EpsilonYoungProject];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.6 Spinors ******************************)
+(****************************** 2.7 Spinors ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -1239,7 +1716,7 @@ Protect[SpinScalar];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.7 Flip and Fierz relations ******************************)
+(****************************** 2.8 Flip and Fierz relations ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -1416,7 +1893,7 @@ Protect[FierzExpand];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.8 Irreducible spin tensors ******************************)
+(****************************** 2.9 Irreducible spin tensors ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -1801,6 +2278,13 @@ If[comm,
 (*\[Gamma]3 t2*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"3"]},g1[mu_,nu_,rho_,A_,B_]Verbatim[CenterDot][left___,t[spinor,3,"4d(d-1)(d-2)/3",rep__][i1___,alpha_,beta_,-B_],right___]:>Antisymmetrize[1/2g1[mu,nu,rho,A,B]t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,alpha,beta,-B]+1/2g1[alpha,beta,mu,A,B]CenterDot[left,t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,nu,rho,-B],right]+1/2g1[alpha,mu,nu,A,B]CenterDot[left,t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,rho,beta,-B],right]-1/2g1[beta,mu,nu,A,B]CenterDot[left,t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,rho,alpha,-B],right],{mu,nu,rho}]]];
 (*\[Gamma]4 t2*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"4"]},g1[mu_,nu_,rho_,sigma_,A_,B_]t[spinor,3,"4d(d-1)(d-2)/3",rep__][i1___,alpha_,beta_,-B_]:>Antisymmetrize[3/5g1[mu,nu,rho,sigma,A,B]t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,alpha,beta,-B]-3/5g1[alpha,mu,nu,rho,A,B]t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,sigma,beta,-B]+3/5g1[beta,mu,nu,rho,A,B]t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,sigma,alpha,-B]+3/5g1[alpha,beta,mu,nu,A,B]t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,rho,sigma,-B],{mu,nu,rho,sigma}]]];
 (*\[Gamma]4 t2*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"4"]},g1[mu_,nu_,rho_,sigma_,A_,B_]Verbatim[CenterDot][left___,t[spinor,3,"4d(d-1)(d-2)/3",rep__][i1___,alpha_,beta_,-B_],right___]:>Antisymmetrize[3/5g1[mu,nu,rho,sigma,A,B]t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,alpha,beta,-B]-3/5g1[alpha,mu,nu,rho,A,B]CenterDot[left,t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,sigma,beta,-B],right]+3/5g1[beta,mu,nu,rho,A,B]CenterDot[left,t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,sigma,alpha,-B],right]+3/5g1[alpha,beta,mu,nu,A,B]CenterDot[left,t[spinor,3,"4d(d-1)(d-2)/3",rep][i1,rho,sigma,-B],right],{mu,nu,rho,sigma}]]];
+],
+If[comm,
+(*\[Gamma]3 t1*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"3"]},g1[mu_,nu_,rho_,A_,B_]t[spinor,3,"12",rep__][i1___,alpha_,-B_]:>3/4g1[mu,nu,rho,A,B]t[spinor,3,"12",rep][i1,alpha,-B]+1/4g1[alpha,mu,nu,A,B]t[spinor,3,"12",rep][i1,rho,-B]+1/4g1[alpha,rho,mu,A,B]t[spinor,3,"12",rep][i1,nu,-B]+1/4g1[alpha,nu,rho,A,B]t[spinor,3,"12",rep][i1,mu,-B]]];
+(*\[Gamma]1 t2*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"1"]},g1[mu_,A_,B_]t[spinor,3,"8",rep__][i1___,alpha_,beta_,-B_]:>2/3g1[mu,A,B]t[spinor,3,"8",rep][i1,alpha,beta,-B]-1/3g1[alpha,A,B]t[spinor,3,"8",rep][i1,beta,mu,-B]+1/3g1[beta,A,B]t[spinor,3,"8",rep][i1,alpha,mu,-B]]];
+(*\[Gamma]2 t2*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"2"]},g1[mu_,nu_,A_,B_]t[spinor,3,"8",rep__][i1___,alpha_,beta_,-B_]:>Antisymmetrize[5/6g1[mu,nu,A,B]t[spinor,3,"8",rep][i1,alpha,beta,-B]-1/3g1[mu,alpha,A,B]t[spinor,3,"8",rep][i1,beta,nu,-B]+1/3g1[mu,beta,A,B]t[spinor,3,"8",rep][i1,alpha,nu,-B]-1/6g1[alpha,beta,A,B]t[spinor,3,"8",rep][i1,mu,nu,-B],{mu,nu}]]];
+(*\[Gamma]3 t2*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"3"]},g1[mu_,nu_,rho_,A_,B_]t[spinor,3,"8",rep__][i1___,alpha_,beta_,-B_]:>Antisymmetrize[1/2g1[mu,nu,rho,A,B]t[spinor,3,"8",rep][i1,alpha,beta,-B]+1/2g1[alpha,beta,mu,A,B]t[spinor,3,"8",rep][i1,nu,rho,-B]+1/2g1[alpha,mu,nu,A,B]t[spinor,3,"8",rep][i1,rho,beta,-B]-1/2g1[beta,mu,nu,A,B]t[spinor,3,"8",rep][i1,rho,alpha,-B],{mu,nu,rho}]]];
+(*\[Gamma]4 t2*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"4"]},g1[mu_,nu_,rho_,sigma_,A_,B_]t[spinor,3,"8",rep__][i1___,alpha_,beta_,-B_]:>Antisymmetrize[3/5g1[mu,nu,rho,sigma,A,B]t[spinor,3,"8",rep][i1,alpha,beta,-B]-3/5g1[alpha,mu,nu,rho,A,B]t[spinor,3,"8",rep][i1,sigma,beta,-B]+3/5g1[beta,mu,nu,rho,A,B]t[spinor,3,"8",rep][i1,sigma,alpha,-B]+3/5g1[alpha,beta,mu,nu,A,B]t[spinor,3,"8",rep][i1,rho,sigma,-B],{mu,nu,rho,sigma}]]];
 ]
 ];
 (* Young tableau projection for lie algebra indices *)
@@ -1824,7 +2308,7 @@ expr/.reps/.repsyoung/.repslie
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.9 Gradings ******************************)
+(****************************** 2.10 Gradings ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -1886,7 +2370,7 @@ Protect[SetGrading];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.10 Left and right variational derivatives ******************************)
+(****************************** 2.11 Left and right variational derivatives ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -1911,8 +2395,8 @@ LeftVarD[tensor_[inds1___],der_][tensor_?xTensorQ[inds2___],lrest_,rrest_]:=With
 ToCanonical[ImposeSymmetry[Inner[xAct`xTensor`Private`varddelta,clist,IndexList[inds2],Times],clist,SymmetryGroupOfTensor[tensor[inds1]]]lrest\[CenterDot]rrest,UseMetricOnVBundle->None]];
 (* A different tensor *)
 LeftVarD[tensor1_[inds1___],der_][tensor2_?xTensorQ[inds2___],lrest_,rrest_]:=0/;!ImplicitTensorDepQ[tensor2,tensor1];
-(* Same connection: integration by parts *)
-LeftVarD[tensor_,covd_][covd_?CovDQ[ind_][expr_],lrest_,rrest_]:=-LeftVarD[tensor,covd][expr,covd[ind][lrest],rrest]-LeftVarD[tensor,covd][expr,lrest,covd[ind][rrest]];
+(* Same connection: integration by parts including torsion *)
+LeftVarD[tensor_,covd_][covd_?CovDQ[ind_][expr_],lrest_,rrest_]:=-LeftVarD[tensor,covd][expr,covd[ind][lrest],rrest]-LeftVarD[tensor,covd][expr,lrest,covd[ind][rrest]]+If[TorsionQ[covd],With[{i2=DummyIn@VBundleOfIndex[ind]},LeftVarD[tensor,covd][Torsion[covd][i2,-i2,ind]expr,lrest,rrest]],0];
 (* Symmetrized derivatives: explode them, since we need to split between left and right remainder *)
 LeftVarD[tensor_,covd_][covd_?SymCovDQ[inds__][expr_],lrest_,rrest_]:=LeftVarD[tensor,covd][ExpandSymCovDs[covd[inds][expr],covd],lrest,rrest];
 (* Different connection: ChangeCovD *)
@@ -1934,7 +2418,7 @@ Protect[RightVarD];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.11 Contractions and Monomials ******************************)
+(****************************** 2.12 Contractions and Monomials ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -2188,7 +2672,7 @@ Protect[GenerateMonomialsByGrading];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.12 BRST operator and filtrations ******************************)
+(****************************** 2.13 BRST operator and filtrations ******************************)
 
 
 (* ::Input::Initialization:: *)
@@ -2210,7 +2694,8 @@ head/:head[Verbatim[CenterDot][x_, y___]]:=CenterDot[head[x],y]+(-1)^Parity[x]Ce
 head/:head[Scalar[expr_]]:=head[NoScalar@Scalar[expr]];
 (* lists *)head/:head[list_List]:=Map[head,list];
 (* commutes with partial derivatives *)head/:head[PD[i___][expr_]]:=PD[i][head[expr]];
-(* and invariant tensors*)head/:head[t_?InvariantTraceTensorQ[i__]]:=0;
+(* and invariant tensors *)head/:head[t_?InvariantTraceTensorQ[i__]]:=0;
+(* and delta *)head/:head[delta[_,_]]:=0;
 (* odd differential *)xTagSetDelayed[{head,Grade[head[expr_],CenterDot]},1+Grade[head,CenterDot]];
 (*Register*)MakexTensions[DefOddDifferential,"End",gh,options];
 (*Protect*)If[pns,Protect[head]];]];
@@ -2332,7 +2817,7 @@ Protect[RemoveFiltration];
 
 
 (* ::Input::Initialization:: *)
-(****************************** 2.13 Cohomology ******************************)
+(****************************** 2.14 Cohomology ******************************)
 
 
 (* ::Input::Initialization:: *)
