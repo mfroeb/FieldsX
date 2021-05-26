@@ -21,7 +21,7 @@
 
 (* ::Input::Initialization:: *)
 xAct`FieldsX`$xTensorVersionExpected={"1.1.4",{2020,2,16}};
-xAct`FieldsX`$Version={"1.1",{2021,03,29}};
+xAct`FieldsX`$Version={"1.1.2",{2021,5,26}};
 
 
 (* ::Input::Initialization:: *)
@@ -48,7 +48,7 @@ You should have received a copy of the GNU General Public License along with thi
   
 (* :Context: xAct`FieldsX` *)
 
-(* :Package Version: 1.1 *)
+(* :Package Version: 1.1.2 *)
 
 (* :Copyright: Markus B. Fr\[ODoubleDot]b (2019-2021) *)
 
@@ -59,6 +59,8 @@ You should have received a copy of the GNU General Public License along with thi
                    fixed EpsilonGammaReduce for partially contracted \[Gamma] matrices, added dual \[Gamma] matrices
              1.1   Added frame fields and spin connections and the corresponding utility functions and perturbations,
                    fixed UndefSpinStructure to also remove perturbations of \[Gamma] matrices
+             1.1.1 Fixed some issues in TensorCount and printing of \[Gamma] matrices
+             1.1.2 Added ChangeCurvature[\[Omega],PD], fixed tracelessness of irreducible tensors
  *)
 
 (* :Keywords: TODO *)
@@ -503,7 +505,7 @@ TensorCount[IndexFree[x_?ConstantQ],t_?xTensorQ,ders_?BooleanQ]:=0;
 
 
 (* ::Input::Initialization:: *)
-TensorCount[expr___,t_?xTensorQ]:=TensorCount[expr,t,True];
+TensorCount[expr_,t_?xTensorQ]:=TensorCount[expr,t,True];
 TensorCount[Verbatim[Plus][expr___],t_?xTensorQ,ders_?BooleanQ]:=Map[TensorCount[#,t,ders]&,Plus[expr]];
 TensorCount[Verbatim[Times][expr___],t_?xTensorQ,ders_?BooleanQ]:=Plus@@Map[TensorCount[#,t,ders]&,List[expr]];
 TensorCount[Verbatim[CenterDot][expr___],t_?xTensorQ,ders_?BooleanQ]:=Plus@@Map[TensorCount[#,t,ders]&,List[expr]];
@@ -511,6 +513,7 @@ TensorCount[cd_?CovDQ[inds__][expr_],t_?xTensorQ,True]:=TensorCount[expr,t,True]
 TensorCount[cd_?CovDQ[inds__][expr_],t_?xTensorQ,False]:=0;
 TensorCount[t1_?xTensorQ[inds___],t_?xTensorQ,ders_?BooleanQ]:=If[t1===t,1,0];
 TensorCount[x_?ConstantQ,t_?xTensorQ,ders_?BooleanQ]:=0;
+TensorCount[t1_?xTensorQ[]^y_,t_?xTensorQ,ders_?BooleanQ]:=y TensorCount[t1[],t,ders];
 (*TensorCount[h_?InertHeadQ[expr_],t_?xTensorQ,ders_?BooleanQ]:=TensorCount[expr,t,ders];*)
 SetNumberOfArguments[TensorCount,{2,3}];
 Protect[TensorCount];
@@ -939,6 +942,11 @@ inject[{achris->Riemann[cd],tsym->riem,fbsym->tbundle,frsym->frame},AppendTo[tq,
 inject[{achris->Ricci[cd],tsym->ric,fbsym->tbundle,frsym->frame},AppendTo[tq,tsym[i1_,i2_]:>With[{aa=DummyIn@fbsym},achris[i1,aa]frsym[-aa,i2]]]];
 inject[{achris->RicciScalar[cd],tsym->ricscal},AppendTo[tq,tsym[]:>achris[]]];
 inject[{gamsym->conn,sbsym->cd,fbsym->tq},gamsym/:ChangeCurvature[expr_,gamsym,sbsym]:=expr/.fbsym];
+tq={};
+inject[{achris->riem,tsym->conn,tbsym->tbundle,fbsym->fbundle,gamsym->First@MetricsOfVBundle[tbundle]},AppendTo[tq,achris[i1_,i2_,i3_,i4_]:>With[{aa=DummyIn@fbsym,mm=DummyIn@tbsym,nn=DummyIn@tbsym},gamsym[i1,mm]gamsym[i2,nn](PD[-mm]@tsym[-nn,i3,i4]-PD[-nn]@tsym[-mm,i3,i4]+tsym[-mm,i3,aa]tsym[-nn,-aa,i4]-tsym[-nn,i3,aa]tsym[-mm,-aa,i4])]]];
+inject[{achris->ric,tsym->conn,tbsym->tbundle,fbsym->fbundle,gamsym->First@MetricsOfVBundle[tbundle],frsym->frame},AppendTo[tq,achris[i1_,i3_]:>With[{aa=DummyIn@fbsym,bb=DummyIn@fbsym,mm=DummyIn@tbsym,nn=DummyIn@tbsym},frsym[nn,bb]gamsym[i1,mm](PD[-mm]@tsym[-nn,i3,-bb]-PD[-nn]@tsym[-mm,i3,-bb]+tsym[-mm,i3,aa]tsym[-nn,-aa,-bb]-tsym[-nn,i3,aa]tsym[-mm,-aa,-bb])]]];
+inject[{achris->ricscal,tsym->conn,tbsym->tbundle,fbsym->fbundle,gamsym->First@MetricsOfVBundle[tbundle],frsym->frame},AppendTo[tq,achris[]:>With[{aa=DummyIn@fbsym,bb=DummyIn@fbsym,cc=DummyIn@fbsym,mm=DummyIn@tbsym,nn=DummyIn@tbsym},frsym[nn,bb]frsym[mm,cc](PD[-mm]@tsym[-nn,-cc,-bb]-PD[-nn]@tsym[-mm,-cc,-bb]+tsym[-mm,-cc,aa]tsym[-nn,-aa,-bb]-tsym[-nn,-cc,aa]tsym[-mm,-aa,-bb])]]];
+inject[{gamsym->conn,fbsym->tq},gamsym/:ChangeCurvature[expr_,gamsym,PD]:=expr/.fbsym];
 (* convert torsion tensors *)
 If[TorsionQ[cd],
 (* christoffel symbols *)
@@ -1102,7 +1110,7 @@ spininds[[1]]=-spininds[[1]];
 (* Define the ordinary \[Gamma] matrix first, all others depend on it. We first declare all \[Gamma]'s as real and fix afterwards. *)
 g1=GammaMatrix[met,1];
 gammainds=Join[GetIndicesOfVBundle[tbundle,1],spininds];
-DefTensor[g1@@gammainds,man,PrintAs->("\[Gamma]["<>SymbolName[met]<>"]"),Dagger->Real,GradeOfTensor->{CenterDot->0}];
+DefTensor[g1@@gammainds,man,PrintAs->("\[Gamma]["<>PrintAs[met]<>"]"),Dagger->Real,GradeOfTensor->{CenterDot->0}];
 AppendTo[$GammaMatrices,g1];
 xUpSetDelayed[cd[__]@g1[__],0];
 xTagSetDelayed[{g1,g1[__,-k_,k_]},0];
@@ -1114,7 +1122,7 @@ eta=First@MetricsOfVBundle[fbundle];
 frame=FrameFieldOfBundle[tbundle,fbundle];
 gf1=GammaMatrix[eta,1];
 gammainds=Join[GetIndicesOfVBundle[fbundle,1],spininds];
-DefTensor[gf1@@gammainds,man,PrintAs->("\[Gamma]["<>SymbolName[eta]<>"]"),Dagger->Real,GradeOfTensor->{CenterDot->0}];
+DefTensor[gf1@@gammainds,man,PrintAs->("\[Gamma]["<>PrintAs[Evaluate@eta]<>"]"),Dagger->Real,GradeOfTensor->{CenterDot->0}];
 AppendTo[$GammaMatrices,gf1];
 xUpSetDelayed[cd[__]@gf1[__],0];
 xTagSetDelayed[{gf1,gf1[__,-k_,k_]},0];
@@ -1145,7 +1153,7 @@ Protect[LeftVarD];
 (* Define the matrix that implements Hermitean conjugation for Lorentzian metrics (i.e., Dagger) - \[Gamma]^0 as per Freedman/van Proeyen. *)
 If[Not[eucl],
 g0=GammaMatrix[met,Zero];
-DefTensor[g0@@spininds,man,{PrintAs->"\!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\)["<>SymbolName[met]<>"]",Dagger->Real,Master->g1,GradeOfTensor->{CenterDot->0}}];
+DefTensor[g0@@spininds,man,{PrintAs->"\!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\)["<>PrintAs[met]<>"]",Dagger->Real,Master->g1,GradeOfTensor->{CenterDot->0}}];
 AppendTo[$GammaMatrices,g0];
 xUpSetDelayed[cd[_]@g0[__],0];
 xTagSetDelayed[{g0,g0[-k_,k_]},0];
@@ -1160,7 +1168,7 @@ inject[{gam->g0,rie->g1,tm->sbundle},Dagger[rie]^=Function[Module[{a=DummyIn[tm]
 (* same for frame bundle matrix *)
 If[FrameBundleQ[fbundle],
 g0=GammaMatrix[eta,Zero];
-DefTensor[g0@@spininds,man,{PrintAs->"\!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\)["<>SymbolName[eta]<>"]",Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}}];
+DefTensor[g0@@spininds,man,{PrintAs->"\!\(\*SuperscriptBox[\(\[Gamma]\), \(0\)]\)["<>PrintAs[Evaluate@eta]<>"]",Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}}];
 AppendTo[$GammaMatrices,g0];
 xUpSetDelayed[cd[_]@g0[__],0];
 xTagSetDelayed[{g0,g0[-k_,k_]},0];
@@ -1176,7 +1184,7 @@ inject[{gam->g0,rie->gf1,tm->fbundle},Dagger[rie]^=Function[Module[{a=DummyIn[tm
 For[i=2,i<=dimm,i++,
 gammasym=GammaMatrix[met,i];
 gammainds=Join[GetIndicesOfVBundle[tbundle,i],spininds];
-DefTensor[gammasym@@gammainds,man,Antisymmetric[Range[i]],PrintAs->("\[Gamma]["<>SymbolName[met]<>"]"),Dagger->Real,Master->g1,GradeOfTensor->{CenterDot->0}];
+DefTensor[gammasym@@gammainds,man,Antisymmetric[Range[i]],PrintAs->("\[Gamma]["<>PrintAs[met]<>"]"),Dagger->Real,Master->g1,GradeOfTensor->{CenterDot->0}];
 AppendTo[$GammaMatrices,gammasym];
 xUpSetDelayed[cd[__]@gammasym[__],0];
 xTagSetDelayed[{gammasym,gammasym[__,-k_,k_]},0];
@@ -1200,7 +1208,7 @@ Protect[LeftVarD];
 If[FrameBundleQ[fbundle],
 gammasym=GammaMatrix[eta,i];
 gammainds=Join[GetIndicesOfVBundle[fbundle,i],spininds];
-DefTensor[gammasym@@gammainds,man,Antisymmetric[Range[i]],PrintAs->("\[Gamma]["<>SymbolName[eta]<>"]"),Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}];
+DefTensor[gammasym@@gammainds,man,Antisymmetric[Range[i]],PrintAs->("\[Gamma]["<>PrintAs[Evaluate@eta]<>"]"),Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}];
 AppendTo[$GammaMatrices,gammasym];
 xUpSetDelayed[cd[__]@gammasym[__],0];
 xTagSetDelayed[{gammasym,gammasym[__,-k_,k_]},0];
@@ -1219,7 +1227,7 @@ Protect[LeftVarD];
 ];
 If[EvenQ[dimm],
 gammasym=GammaMatrix[met,Star];
-DefTensor[gammasym@@spininds,man,PrintAs->("\!\(\*SuperscriptBox[\(\[Gamma]\), \(*\)]\)["<>SymbolName[met]<>"]"),Dagger->Real,Master->g1,GradeOfTensor->{CenterDot->0}];
+DefTensor[gammasym@@spininds,man,PrintAs->("\!\(\*SuperscriptBox[\(\[Gamma]\), \(*\)]\)["<>PrintAs[met]<>"]"),Dagger->Real,Master->g1,GradeOfTensor->{CenterDot->0}];
 AppendTo[$GammaMatrices,gammasym];
 xUpSetDelayed[cd[__]@gammasym[__],0];
 xTagSetDelayed[{gammasym,gammasym[-k_,k_]},0];
@@ -1231,7 +1239,7 @@ inject[{gam->gammasym},If[!FrameBundleQ[fbundle],xAct`xPert`Private`ExpandPertur
 (* same for frame bundle matrix *)
 If[FrameBundleQ[fbundle],
 gammasym=GammaMatrix[eta,Star];
-DefTensor[gammasym@@spininds,man,PrintAs->("\!\(\*SuperscriptBox[\(\[Gamma]\), \(*\)]\)["<>SymbolName[eta]<>"]"),Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}];
+DefTensor[gammasym@@spininds,man,PrintAs->("\!\(\*SuperscriptBox[\(\[Gamma]\), \(*\)]\)["<>PrintAs[Evaluate@eta]<>"]"),Dagger->Real,Master->gf1,GradeOfTensor->{CenterDot->0}];
 AppendTo[$GammaMatrices,gammasym];
 xUpSetDelayed[cd[__]@gammasym[__],0];
 xTagSetDelayed[{gammasym,gammasym[-k_,k_]},0];
@@ -1601,22 +1609,22 @@ If[SpinorsPkgLoaded&&SpinorsKeepDefs,funcname=DefGenSpinor;,funcname=DefSpinor;]
 {st,conj,pns}=OptionValue[{SpinorType,Conjugate,ProtectNewSymbol}];
 (* Majorana spinors only exist in dimensions 2,3,4 mod 8. We only check the first manifold, which should make it work on products as well. *)
 mfold=SelectFirst[If[Head[dependencies]===List,dependencies,{dependencies}],ManifoldQ,Null];
-If[mfold==Null,Throw@Message[funcname::nomanifold,dependencies]];
+If[mfold==Null,Throw@Message[Evaluate[MessageName[Evaluate@funcname,"nomanifold"]],dependencies]];
 dimm=DimOfManifold[mfold];
 met=MetricsOfVBundle[Tangent[mfold]];
-If[Length[met]<1,Throw@Message[funcname::missing,"metric defined",mfold]];
+If[Length[met]<1,Throw@Message[Evaluate[MessageName[Evaluate@funcname,"missing"]],"metric defined",mfold]];
 met=First[met];
 (* check that a spin structure has been defined *)
-If[!xTensorQ[Symbol["Gamma"<>SymbolName[met]<>"1"]],Throw@Message[funcname::missing,"spin structure defined",mfold]];
+If[!xTensorQ[Symbol["Gamma"<>SymbolName[met]<>"1"]],Throw@Message[Evaluate[MessageName[Evaluate@funcname,"missing"]],"spin structure defined",mfold]];
 (* check that the last index is a down index of the spin bundle *)
 sbundle=Symbol["Spin"<>SymbolName[mfold]];
-If[(!DownIndexQ[Last@{indices}])||(VBundleOfIndex[Last@{indices}]=!=sbundle),Throw@Message[funcname::invalid,Last@{indices},"index"]];
+If[(!DownIndexQ[Last@{indices}])||(VBundleOfIndex[Last@{indices}]=!=sbundle),Throw@Message[Evaluate[MessageName[Evaluate@funcname,"invalid"]],Last@{indices},"index"]];
 eucl=(SignDetOfMetric[met]==1);
 bar=Symbol[StringJoin["bar",SymbolName[head]]];
 Switch[st,
-Majorana,If[MemberQ[{2,3,4},Mod[dimm,8]],MajoranaQ[head]^=True;MajoranaQ[bar]^=True,Throw@Message[funcname::majoranawrongdim,mfold,dimm]],
+Majorana,If[MemberQ[{2,3,4},Mod[dimm,8]],MajoranaQ[head]^=True;MajoranaQ[bar]^=True,Throw@Message[Evaluate[MessageName[Evaluate@funcname,"majoranawrongdim"]],mfold,dimm]],
 Dirac,DiracQ[head]^=True;DiracQ[bar]^=True,
-_,Throw@Message[funcname::invalid,"spinor type",st];
+_,Throw@Message[Evaluate[MessageName[Evaluate@funcname,"invalid"]],"spinor type",st];
 ];
 SpinorQ[head]^=True;SpinorQ[bar]^=True;
 If[TrueQ@conj,SpinorBarQ[head]^=True;SpinorBarQ[bar]^=False,SpinorBarQ[head]^=False;SpinorBarQ[bar]^=True];
@@ -2287,6 +2295,9 @@ If[comm,
 (*\[Gamma]4 t2*)AppendTo[reps,inject[{t->tens,g1->Symbol[gam<>"4"]},g1[mu_,nu_,rho_,sigma_,A_,B_]t[spinor,3,"8",rep__][i1___,alpha_,beta_,-B_]:>Antisymmetrize[3/5g1[mu,nu,rho,sigma,A,B]t[spinor,3,"8",rep][i1,alpha,beta,-B]-3/5g1[alpha,mu,nu,rho,A,B]t[spinor,3,"8",rep][i1,sigma,beta,-B]+3/5g1[beta,mu,nu,rho,A,B]t[spinor,3,"8",rep][i1,sigma,alpha,-B]+3/5g1[alpha,beta,mu,nu,A,B]t[spinor,3,"8",rep][i1,rho,sigma,-B],{mu,nu,rho,sigma}]]];
 ]
 ];
+(* traces *)
+AppendTo[reps,inject[{t->tens},t[spinor,__][___,a_,___,-a_,___]:>0]];
+AppendTo[reps,inject[{t->tens},t[spinor,__][___,-a_,___,a_,___]:>0]];
 (* Young tableau projection for lie algebra indices *)
 If[extralie,
 If[comm,
