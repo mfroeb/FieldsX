@@ -21,7 +21,7 @@
 
 (* ::Input::Initialization:: *)
 xAct`FieldsX`$xTensorVersionExpected={"1.1.4",{2020,2,16}};
-xAct`FieldsX`$Version={"1.1.2",{2021,5,26}};
+xAct`FieldsX`$Version={"1.1.3",{2021,5,27}};
 
 
 (* ::Input::Initialization:: *)
@@ -48,7 +48,7 @@ You should have received a copy of the GNU General Public License along with thi
   
 (* :Context: xAct`FieldsX` *)
 
-(* :Package Version: 1.1.2 *)
+(* :Package Version: 1.1.3 *)
 
 (* :Copyright: Markus B. Fr\[ODoubleDot]b (2019-2021) *)
 
@@ -61,6 +61,7 @@ You should have received a copy of the GNU General Public License along with thi
                    fixed UndefSpinStructure to also remove perturbations of \[Gamma] matrices
              1.1.1 Fixed some issues in TensorCount and printing of \[Gamma] matrices
              1.1.2 Added ChangeCurvature[\[Omega],PD], fixed tracelessness of irreducible tensors
+             1.1.3 Fixed Parity of undeclared differential, fixed unevaluated constant expressions in TensorCount
  *)
 
 (* :Keywords: TODO *)
@@ -501,7 +502,7 @@ TensorCount[IndexFree[x_^y_],t_?xTensorQ,ders_?BooleanQ]:=y TensorCount[IndexFre
 TensorCount[IndexFree[cd_?CovDQ[expr_]],t_?xTensorQ,True]:=TensorCount[IndexFree[expr],t,True];
 TensorCount[IndexFree[cd_?CovDQ[expr_]],t_?xTensorQ,False]:=0;
 TensorCount[IndexFree[t1_?xTensorQ],t_?xTensorQ,ders_?BooleanQ]:=If[t1===t,1,0];
-TensorCount[IndexFree[x_?ConstantQ],t_?xTensorQ,ders_?BooleanQ]:=0;
+TensorCount[IndexFree[x_?ConstantExprQ],t_?xTensorQ,ders_?BooleanQ]:=0;
 
 
 (* ::Input::Initialization:: *)
@@ -512,7 +513,7 @@ TensorCount[Verbatim[CenterDot][expr___],t_?xTensorQ,ders_?BooleanQ]:=Plus@@Map[
 TensorCount[cd_?CovDQ[inds__][expr_],t_?xTensorQ,True]:=TensorCount[expr,t,True];
 TensorCount[cd_?CovDQ[inds__][expr_],t_?xTensorQ,False]:=0;
 TensorCount[t1_?xTensorQ[inds___],t_?xTensorQ,ders_?BooleanQ]:=If[t1===t,1,0];
-TensorCount[x_?ConstantQ,t_?xTensorQ,ders_?BooleanQ]:=0;
+TensorCount[x_?ConstantExprQ,t_?xTensorQ,ders_?BooleanQ]:=0;
 TensorCount[t1_?xTensorQ[]^y_,t_?xTensorQ,ders_?BooleanQ]:=y TensorCount[t1[],t,ders];
 (*TensorCount[h_?InertHeadQ[expr_],t_?xTensorQ,ders_?BooleanQ]:=TensorCount[expr,t,ders];*)
 SetNumberOfArguments[TensorCount,{2,3}];
@@ -526,7 +527,7 @@ AllTensors1[Verbatim[Times][expr___]]:=Flatten@Map[AllTensors1,List[expr]];
 AllTensors1[x_^k_]:=ConstantArray[AllTensors1[x],k];
 AllTensors1[cd_?CovDQ[expr_]]:=AllTensors1[expr];
 AllTensors1[t_?xTensorQ]:={t};
-AllTensors1[x_?ConstantQ]:=Sequence[];
+AllTensors1[x_?ConstantExprQ]:=Sequence[];
 SetNumberOfArguments[AllTensors,1];
 Protect[AllTensors];
 
@@ -2707,7 +2708,7 @@ head/:head[Scalar[expr_]]:=head[NoScalar@Scalar[expr]];
 (* commutes with partial derivatives *)head/:head[PD[i___][expr_]]:=PD[i][head[expr]];
 (* and invariant tensors *)head/:head[t_?InvariantTraceTensorQ[i__]]:=0;
 (* and delta *)head/:head[delta[_,_]]:=0;
-(* odd differential *)xTagSetDelayed[{head,Grade[head[expr_],CenterDot]},1+Grade[head,CenterDot]];
+(* odd differential *)xTagSetDelayed[{head,Grade[head[expr_],CenterDot]},1+Grade[expr,CenterDot]];
 (*Register*)MakexTensions[DefOddDifferential,"End",gh,options];
 (*Protect*)If[pns,Protect[head]];]];
 SetNumberOfArguments[DefOddDifferential,{1,Infinity}];
